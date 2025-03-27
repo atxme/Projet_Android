@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.quiz.ui.home.HomeFragment"
+        android:label="Accueil"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_quizDetails"
+            app:destination="@id/quizDetailsFragment" />
+        <action
+            android:id="@+id/action_home_to_gameSetup"
+            app:destination="@id/gameSetupFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/exploreFragment"
+        android:name="com.example.quiz.ui.explore.ExploreFragment"
+        android:label="Explorer"
+        tools:layout="@layout/fragment_explore" />
+
+    <fragment
+        android:id="@+id/createFragment"
+        android:name="com.example.quiz.ui.create.CreateFragment"
+        android:label="Créer"
+        tools:layout="@layout/fragment_create" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.quiz.ui.profile.ProfileFragment"
+        android:label="Profil"
+        tools:layout="@layout/fragment_profile" />
+
+    <fragment
+        android:id="@+id/authFragment"
+        android:name="com.example.quiz.ui.auth.AuthFragment"
+        android:label="Connexion"
+        tools:layout="@layout/fragment_auth">
+        <action
+            android:id="@+id/action_auth_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/quizDetailsFragment"
+        android:name="com.example.quiz.ui.quiz.QuizDetailsFragment"
+        android:label="Détails du quiz"
+        tools:layout="@layout/fragment_quiz_details" />
+
+    <fragment
+        android:id="@+id/gameSetupFragment"
+        android:name="com.example.quiz.ui.game.GameSetupFragment"
+        android:label="Configuration de la partie"
+        tools:layout="@layout/fragment_game_setup" />
+
+    <fragment
+        android:id="@+id/editQuizFragment"
+        android:name="com.example.quiz.ui.create.EditQuizFragment"
+        android:label="Édition du Quiz"
+        tools:layout="@layout/fragment_edit_quiz">
+        <argument
+            android:name="quizId"
+            app:argType="string"
+            app:nullable="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.quiz.ui.profile.SettingsFragment"
+        android:label="Paramètres"
+        tools:layout="@layout/fragment_settings" />
+
+    <fragment
+        android:id="@+id/statisticsFragment"
+        android:name="com.example.quiz.ui.profile.StatisticsFragment"
+        android:label="Statistiques"
+        tools:layout="@layout/fragment_statistics" />
+
+    <fragment
+        android:id="@+id/achievementsFragment"
+        android:name="com.example.quiz.ui.profile.AchievementsFragment"
+        android:label="Accomplissements"
+        tools:layout="@layout/fragment_achievements" />
+
+    <fragment
+        android:id="@+id/categoryQuizzesFragment"
+        android:name="com.example.quiz.ui.explore.CategoryQuizzesFragment"
+        android:label="Quiz par catégorie"
+        tools:layout="@layout/fragment_category_quizzes">
+        <argument
+            android:name="category"
+            app:argType="string" />
+    </fragment>
+
+    <activity
+        android:id="@+id/gameActivity"
+        android:name="com.example.quiz.ui.game.GameActivity"
+        android:label="Partie en cours"
+        tools:layout="@layout/activity_game">
+        <argument
+            android:name="quizId"
+            app:argType="string" />
+        <argument
+            android:name="gameMode"
+            app:argType="string" />
+        <argument
+            android:name="playerNames"
+            app:argType="string[]" />
+    </activity>
+
+</navigation> 

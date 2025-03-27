@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">Quiz</string>
+    <string name="default_web_client_id">YOUR_WEB_CLIENT_ID</string>
+    
+    <!-- Catégories de quiz -->
+    <string-array name="quiz_categories">
+        <item>Science</item>
+        <item>Histoire</item>
+        <item>Géographie</item>
+        <item>Sports</item>
+        <item>Cinéma</item>
+        <item>Musique</item>
+        <item>Littérature</item>
+        <item>Art</item>
+        <item>Technologie</item>
+        <item>Jeux vidéo</item>
+        <item>Autre</item>
+    </string-array>
+    
+    <!-- Modes de jeu -->
+    <string-array name="game_modes">
+        <item>Quiz standard</item>
+        <item>Contre la montre</item>
+        <item>Le plus rapide</item>
+        <item>Top 3 sur 4</item>
+        <item>Points régressifs</item>
+        <item>Partage des points</item>
+        <item>Quitte ou double</item>
+        <item>Survie</item>
+        <item>Défi aléatoire</item>
+        <item>Marathon</item>
+        <item>Piège</item>
+        <item>Mémoire</item>
+    </string-array>
+    
+    <!-- Niveaux de difficulté -->
+    <string-array name="difficulty_levels">
+        <item>Très facile</item>
+        <item>Facile</item>
+        <item>Moyen</item>
+        <item>Difficile</item>
+        <item>Expert</item>
+    </string-array>
+</resources>
