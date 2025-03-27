@@ -16,6 +16,9 @@
         <action
             android:id="@+id/action_home_to_gameSetup"
             app:destination="@id/gameSetupFragment" />
+        <action
+            android:id="@+id/action_home_to_create_quiz"
+            app:destination="@id/createFragment" />
     </fragment>
 
     <fragment

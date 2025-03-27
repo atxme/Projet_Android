@@ -11,7 +11,7 @@
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     
     <!-- Firebase -->
-    <string name="default_web_client_id">YOUR_WEB_CLIENT_ID</string>
+    <string name="default_web_client_id" translatable="false">976358408220-5h2md8tr10q1s2l8h44olefod1llabgo.apps.googleusercontent.com</string>
     
     <!-- Quiz App Strings -->
     <string name="quiz_image_description">Image du quiz</string>

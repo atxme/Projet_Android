@@ -37,22 +37,25 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.activity:activity:1.10.1")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.navigation:navigation-fragment:2.7.7")
-    implementation("androidx.navigation:navigation-ui:2.7.7")
+    implementation("androidx.navigation:navigation-fragment:2.8.9")
+    implementation("androidx.navigation:navigation-ui:2.8.9")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     
     // Firebase - avec des versions récentes et sécurisées
-    implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.11.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     // Storage retiré car nécessite un plan payant
     
     // Sécurité additionnelle pour les communications réseau
-    implementation("com.google.android.gms:play-services-auth:21.0.0")
-    implementation("com.google.android.gms:play-services-safetynet:18.0.1")
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation("com.google.android.gms:play-services-safetynet:18.1.0")
     
     // Glide pour le chargement d'images
     implementation("com.github.bumptech.glide:glide:4.16.0")

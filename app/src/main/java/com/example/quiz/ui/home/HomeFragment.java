@@ -10,23 +10,24 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.quiz.R;
 import com.example.quiz.adapter.QuizAdapter;
-import com.example.quiz.model.Question;
 import com.example.quiz.model.Quiz;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
@@ -45,6 +46,7 @@ public class HomeFragment extends Fragment {
     
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+    private boolean useFirestore = false; // Désactiver Firestore temporairement à cause des problèmes de permission
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -56,14 +58,29 @@ public class HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        // Initialiser Firebase
+        // Initialiser Firebase (mais on ne l'utilisera que si les permissions sont OK)
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         
         // Configurer les RecyclerViews
         setupRecyclerViews(view);
         
-        // Charger les données
+        // Configurer le bouton pour créer un quiz
+        FloatingActionButton fab = view.findViewById(R.id.fabCreateQuiz);
+        if (fab != null) {
+            fab.setOnClickListener(v -> {
+                // Naviguer vers l'écran de création de quiz
+                try {
+                    NavController navController = Navigation.findNavController(view);
+                    navController.navigate(R.id.action_home_to_create_quiz);
+                } catch (Exception e) {
+                    Log.e(TAG, "Erreur de navigation: " + e.getMessage());
+                    Toast.makeText(getContext(), "Navigation non disponible", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+        
+        // Charger les données - d'abord essayer Firestore, sinon utiliser les données locales
         loadData();
     }
     
@@ -71,31 +88,86 @@ public class HomeFragment extends Fragment {
         // RecyclerView des quizzes récents
         recyclerViewRecent = view.findViewById(R.id.recyclerViewRecent);
         recyclerViewRecent.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        recentAdapter = new QuizAdapter(recentQuizzes);
+        recentAdapter = new QuizAdapter(recentQuizzes, quiz -> {
+            // Gestion du clic sur un quiz
+            Log.d(TAG, "Quiz sélectionné: " + quiz.getTitle());
+            
+            // Naviguer vers le détail du quiz (si l'action existe)
+            try {
+                NavController navController = Navigation.findNavController(requireView());
+                Bundle args = new Bundle();
+                args.putString("quizId", quiz.getId());
+                // navController.navigate(R.id.action_home_to_quiz_details, args);
+                // Pour l'instant, juste afficher un message
+                Toast.makeText(getContext(), "Quiz sélectionné: " + quiz.getTitle(), Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Log.e(TAG, "Erreur lors de la navigation: " + e.getMessage());
+            }
+        });
         recyclerViewRecent.setAdapter(recentAdapter);
         
         // RecyclerView des quizzes populaires
         recyclerViewPopular = view.findViewById(R.id.recyclerViewPopular);
         recyclerViewPopular.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        popularAdapter = new QuizAdapter(popularQuizzes);
+        popularAdapter = new QuizAdapter(popularQuizzes, quiz -> {
+            // Gestion du clic sur un quiz
+            Log.d(TAG, "Quiz sélectionné: " + quiz.getTitle());
+            Toast.makeText(getContext(), "Quiz sélectionné: " + quiz.getTitle(), Toast.LENGTH_SHORT).show();
+        });
         recyclerViewPopular.setAdapter(popularAdapter);
         
         // RecyclerView de vos quizzes
         recyclerViewYours = view.findViewById(R.id.recyclerViewYours);
         recyclerViewYours.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        yourAdapter = new QuizAdapter(yourQuizzes);
+        yourAdapter = new QuizAdapter(yourQuizzes, quiz -> {
+            // Gestion du clic sur un quiz
+            Log.d(TAG, "Quiz sélectionné: " + quiz.getTitle());
+            Toast.makeText(getContext(), "Quiz sélectionné: " + quiz.getTitle(), Toast.LENGTH_SHORT).show();
+        });
         recyclerViewYours.setAdapter(yourAdapter);
     }
     
     private void loadData() {
+        // Vérifier si on utilise Firestore ou les données locales
+        if (useFirestore) {
+            // Charger depuis Firestore avec fallback sur données locales
+            loadFirestoreData();
+        } else {
+            // Utiliser uniquement les données locales
+            loadLocalData();
+        }
+    }
+    
+    private void loadLocalData() {
+        // Charger les quizzes récents
+        recentQuizzes.clear();
+        recentQuizzes.addAll(createDemoQuizzes());
+        recentAdapter.notifyDataSetChanged();
+        
+        // Charger les quizzes populaires (mêmes données mais ordre différent)
+        popularQuizzes.clear();
+        List<Quiz> demoPop = createDemoQuizzes();
+        Collections.reverse(demoPop); // Inverser l'ordre pour simuler un tri différent
+        popularQuizzes.addAll(demoPop);
+        popularAdapter.notifyDataSetChanged();
+        
+        // Charger vos quizzes
+        yourQuizzes.clear();
+        yourQuizzes.add(createDemoQuiz(
+            "Créez votre premier quiz", 
+            "Appuyez sur le bouton + pour commencer à créer vos propres quiz"));
+        yourAdapter.notifyDataSetChanged();
+    }
+    
+    private void loadFirestoreData() {
         // Vérifier si l'utilisateur est connecté
         FirebaseUser currentUser = mAuth.getCurrentUser();
         String userId = currentUser != null ? currentUser.getUid() : null;
         
-        // Charger les quizzes récents
+        // Charger les quizzes récents avec timeout pour éviter de bloquer l'UI
         loadRecentQuizzes();
         
-        // Charger les quizzes populaires
+        // Charger les quizzes populaires avec timeout
         loadPopularQuizzes();
         
         // Charger vos quizzes si l'utilisateur est connecté
@@ -104,102 +176,148 @@ public class HomeFragment extends Fragment {
         } else {
             // Utilisateur non connecté, afficher des données de démo
             yourQuizzes.clear();
-            yourQuizzes.add(createDemoQuiz("Connectez-vous pour voir vos quizzes", "Créez un compte pour enregistrer vos quizzes et suivre votre progression"));
+            yourQuizzes.add(createDemoQuiz("Connectez-vous pour voir vos quizzes", 
+                "Créez un compte pour enregistrer vos quizzes et suivre votre progression"));
             yourAdapter.notifyDataSetChanged();
         }
     }
     
     private void loadRecentQuizzes() {
-        db.collection("quizzes")
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .limit(10)
-            .get()
-            .addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    recentQuizzes.clear();
-                    for (DocumentSnapshot document : task.getResult()) {
-                        Quiz quiz = documentToQuiz(document);
-                        if (quiz != null) {
-                            recentQuizzes.add(quiz);
+        try {
+            db.collection("quizzes")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(10)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        recentQuizzes.clear();
+                        for (DocumentSnapshot document : task.getResult()) {
+                            try {
+                                Quiz quiz = documentToQuiz(document);
+                                if (quiz != null) {
+                                    recentQuizzes.add(quiz);
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
+                            }
                         }
-                    }
-                    
-                    // Si aucun quiz n'est trouvé, afficher des données de démo
-                    if (recentQuizzes.isEmpty()) {
+                        
+                        // Si aucun quiz n'est trouvé, afficher des données de démo
+                        if (recentQuizzes.isEmpty()) {
+                            recentQuizzes.addAll(createDemoQuizzes());
+                        }
+                        
+                        recentAdapter.notifyDataSetChanged();
+                    } else {
+                        Log.w(TAG, "Erreur lors du chargement des quizzes récents", task.getException());
+                        // En cas d'erreur, afficher des données de démo
+                        recentQuizzes.clear();
                         recentQuizzes.addAll(createDemoQuizzes());
+                        recentAdapter.notifyDataSetChanged();
                     }
-                    
-                    recentAdapter.notifyDataSetChanged();
-                } else {
-                    Log.w(TAG, "Erreur lors du chargement des quizzes récents", task.getException());
-                    // En cas d'erreur, afficher des données de démo
-                    recentQuizzes.clear();
-                    recentQuizzes.addAll(createDemoQuizzes());
-                    recentAdapter.notifyDataSetChanged();
-                }
-            });
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Exception lors du chargement des quizzes récents: " + e.getMessage());
+            // En cas d'erreur, afficher des données de démo
+            recentQuizzes.clear();
+            recentQuizzes.addAll(createDemoQuizzes());
+            recentAdapter.notifyDataSetChanged();
+        }
     }
     
     private void loadPopularQuizzes() {
-        db.collection("quizzes")
-            .orderBy("playCount", Query.Direction.DESCENDING)
-            .limit(10)
-            .get()
-            .addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    popularQuizzes.clear();
-                    for (DocumentSnapshot document : task.getResult()) {
-                        Quiz quiz = documentToQuiz(document);
-                        if (quiz != null) {
-                            popularQuizzes.add(quiz);
+        try {
+            db.collection("quizzes")
+                .orderBy("playCount", Query.Direction.DESCENDING)
+                .limit(10)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        popularQuizzes.clear();
+                        for (DocumentSnapshot document : task.getResult()) {
+                            try {
+                                Quiz quiz = documentToQuiz(document);
+                                if (quiz != null) {
+                                    popularQuizzes.add(quiz);
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
+                            }
                         }
+                        
+                        // Si aucun quiz n'est trouvé, afficher des données de démo
+                        if (popularQuizzes.isEmpty()) {
+                            popularQuizzes.addAll(createDemoQuizzes());
+                            // Inverser l'ordre pour avoir des données différentes des quizzes récents
+                            Collections.reverse(popularQuizzes);
+                        }
+                        
+                        popularAdapter.notifyDataSetChanged();
+                    } else {
+                        Log.w(TAG, "Erreur lors du chargement des quizzes populaires", task.getException());
+                        // En cas d'erreur, afficher des données de démo
+                        popularQuizzes.clear();
+                        List<Quiz> demoQuizzes = createDemoQuizzes();
+                        Collections.reverse(demoQuizzes);
+                        popularQuizzes.addAll(demoQuizzes);
+                        popularAdapter.notifyDataSetChanged();
                     }
-                    
-                    // Si aucun quiz n'est trouvé, afficher des données de démo
-                    if (popularQuizzes.isEmpty()) {
-                        popularQuizzes.addAll(createDemoQuizzes());
-                    }
-                    
-                    popularAdapter.notifyDataSetChanged();
-                } else {
-                    Log.w(TAG, "Erreur lors du chargement des quizzes populaires", task.getException());
-                    // En cas d'erreur, afficher des données de démo
-                    popularQuizzes.clear();
-                    popularQuizzes.addAll(createDemoQuizzes());
-                    popularAdapter.notifyDataSetChanged();
-                }
-            });
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Exception lors du chargement des quizzes populaires: " + e.getMessage());
+            // En cas d'erreur, afficher des données de démo
+            popularQuizzes.clear();
+            List<Quiz> demoQuizzes = createDemoQuizzes();
+            Collections.reverse(demoQuizzes);
+            popularQuizzes.addAll(demoQuizzes);
+            popularAdapter.notifyDataSetChanged();
+        }
     }
     
     private void loadYourQuizzes(String userId) {
-        db.collection("quizzes")
-            .whereEqualTo("authorId", userId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    yourQuizzes.clear();
-                    for (DocumentSnapshot document : task.getResult()) {
-                        Quiz quiz = documentToQuiz(document);
-                        if (quiz != null) {
-                            yourQuizzes.add(quiz);
+        try {
+            db.collection("quizzes")
+                .whereEqualTo("authorId", userId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        yourQuizzes.clear();
+                        for (DocumentSnapshot document : task.getResult()) {
+                            try {
+                                Quiz quiz = documentToQuiz(document);
+                                if (quiz != null) {
+                                    yourQuizzes.add(quiz);
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
+                            }
                         }
+                        
+                        // Si aucun quiz n'est trouvé, afficher un message
+                        if (yourQuizzes.isEmpty()) {
+                            yourQuizzes.add(createDemoQuiz("Vous n'avez pas encore créé de quiz", 
+                                "Appuyez sur le bouton + pour créer votre premier quiz"));
+                        }
+                        
+                        yourAdapter.notifyDataSetChanged();
+                    } else {
+                        Log.w(TAG, "Erreur lors du chargement de vos quizzes", task.getException());
+                        // En cas d'erreur, afficher un message
+                        yourQuizzes.clear();
+                        yourQuizzes.add(createDemoQuiz("Erreur de chargement", 
+                            "Impossible de charger vos quizzes pour le moment"));
+                        yourAdapter.notifyDataSetChanged();
                     }
-                    
-                    // Si aucun quiz n'est trouvé, afficher un message
-                    if (yourQuizzes.isEmpty()) {
-                        yourQuizzes.add(createDemoQuiz("Vous n'avez pas encore créé de quiz", "Appuyez sur le bouton + pour créer votre premier quiz"));
-                    }
-                    
-                    yourAdapter.notifyDataSetChanged();
-                } else {
-                    Log.w(TAG, "Erreur lors du chargement de vos quizzes", task.getException());
-                    // En cas d'erreur, afficher un message
-                    yourQuizzes.clear();
-                    yourQuizzes.add(createDemoQuiz("Erreur de chargement", "Impossible de charger vos quizzes pour le moment"));
-                    yourAdapter.notifyDataSetChanged();
-                }
-            });
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Exception lors du chargement de vos quizzes: " + e.getMessage());
+            // En cas d'erreur, afficher un message
+            yourQuizzes.clear();
+            yourQuizzes.add(createDemoQuiz("Erreur de chargement", 
+                "Impossible de charger vos quizzes pour le moment"));
+            yourAdapter.notifyDataSetChanged();
+        }
     }
     
     private Quiz documentToQuiz(DocumentSnapshot document) {
@@ -264,6 +382,30 @@ public class HomeFragment extends Fragment {
         quiz3.setPlayCount(210);
         quiz3.setRating(4.7);
         demoQuizzes.add(quiz3);
+        
+        Quiz quiz4 = new Quiz(
+            "demo4",
+            "Sciences naturelles",
+            "Testez vos connaissances sur la faune et la flore",
+            null,
+            "system",
+            "Quiz Système"
+        );
+        quiz4.setPlayCount(98);
+        quiz4.setRating(4.3);
+        demoQuizzes.add(quiz4);
+        
+        Quiz quiz5 = new Quiz(
+            "demo5",
+            "Géographie mondiale",
+            "Pays, capitales, fleuves et montagnes du monde",
+            null,
+            "system",
+            "Quiz Système"
+        );
+        quiz5.setPlayCount(156);
+        quiz5.setRating(4.6);
+        demoQuizzes.add(quiz5);
         
         return demoQuizzes;
     }
