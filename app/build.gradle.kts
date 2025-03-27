@@ -51,11 +51,9 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("androidx.credentials:credentials:1.5.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
-    // Storage retiré car nécessite un plan payant
     
-    // Sécurité additionnelle pour les communications réseau
+    // Dependencies pour Google Sign-In (sans App Check pour le moment)
     implementation("com.google.android.gms:play-services-auth:21.3.0")
-    implementation("com.google.android.gms:play-services-safetynet:18.1.0")
     
     // Glide pour le chargement d'images
     implementation("com.github.bumptech.glide:glide:4.16.0")
