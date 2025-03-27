@@ -10,9 +10,12 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.example.quiz.databinding.ActivityMainBinding;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
+    private FirebaseAuth mAuth;
     private NavController navController;
 
     @Override
@@ -21,6 +24,9 @@ public class MainActivity extends AppCompatActivity {
         
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        
+        // Initialisation de Firebase Auth
+        mAuth = FirebaseAuth.getInstance();
         
         // Configurer la Toolbar comme ActionBar
         Toolbar toolbar = binding.toolbar;
@@ -41,6 +47,17 @@ public class MainActivity extends AppCompatActivity {
             
             NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
             NavigationUI.setupWithNavController(bottomNav, navController);
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Vérifier si l'utilisateur est connecté
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null && navController != null) {
+            // Rediriger vers l'écran de connexion si l'utilisateur n'est pas connecté
+            navController.navigate(R.id.authFragment);
         }
     }
     
