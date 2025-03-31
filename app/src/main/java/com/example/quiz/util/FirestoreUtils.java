@@ -260,17 +260,21 @@ public class FirestoreUtils {
      */
     public static void loadAllQuizzes(OnQuizzesLoadedListener listener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Log.d(TAG, "Début chargement des quizzes depuis Firestore");
         db.collection("quizzes")
             .get()
             .addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
+                    Log.d(TAG, "Requête Firestore réussie, documents: " + (task.getResult() != null ? task.getResult().size() : 0));
                     List<Quiz> quizzes = new ArrayList<>();
                     for (DocumentSnapshot document : task.getResult()) {
                         try {
+                            Log.d(TAG, "Traitement du document: " + document.getId());
                             Quiz quiz = Quiz.fromMap(document.getData(), document.getId());
                             quizzes.add(quiz);
+                            Log.d(TAG, "Quiz ajouté: " + quiz.getTitle());
                         } catch (Exception e) {
-                            Log.e(TAG, "Erreur lors de la conversion du document en quiz: " + e.getMessage());
+                            Log.e(TAG, "Erreur lors de la conversion du document " + document.getId() + " en quiz: " + e.getMessage(), e);
                         }
                     }
                     listener.onQuizzesLoaded(quizzes);
