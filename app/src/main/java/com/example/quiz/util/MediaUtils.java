@@ -6,9 +6,11 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 
+import com.bumptech.glide.Glide;
 import com.example.quiz.model.Question;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -241,5 +243,78 @@ public class MediaUtils {
         void onMediaLoaded(String mediaPath, String mediaType);
         void onBase64MediaLoaded(String base64Media, String mediaType);
         void onMediaLoadError(String errorMessage);
+    }
+
+    /**
+     * Charge une image depuis une URL ou un Base64 et l'affiche dans une ImageView
+     */
+    public static void loadImage(Context context, String imageSource, ImageView imageView) {
+        if (context == null || imageSource == null || imageView == null) {
+            return;
+        }
+
+        // Vérifier si l'image est un base64
+        if (imageSource.startsWith("data:image") || imageSource.startsWith("data:image/")) {
+            // Image en Base64
+            loadBase64Image(context, imageSource, imageView);
+        } else if (imageSource.startsWith("gs://")) {
+            // Image dans Firebase Storage (non utilisé, mais pour compatibilité)
+            Log.w(TAG, "Firebase Storage n'est pas utilisé dans cette application");
+            // Afficher une image par défaut ou un message
+            imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+        } else if (imageSource.startsWith("http://") || imageSource.startsWith("https://")) {
+            // Image depuis une URL
+            loadUrlImage(context, imageSource, imageView);
+        } else {
+            // Considérer comme une URL par défaut
+            loadUrlImage(context, imageSource, imageView);
+        }
+    }
+
+    /**
+     * Charge une image Base64 dans une ImageView
+     */
+    private static void loadBase64Image(Context context, String base64String, ImageView imageView) {
+        try {
+            // Extraire la partie Base64 de la chaîne (après la virgule)
+            String[] parts = base64String.split(",");
+            String base64Data = parts.length > 1 ? parts[1] : parts[0];
+
+            // Convertir la chaîne Base64 en tableau d'octets
+            byte[] decodedString = Base64.decode(base64Data, Base64.DEFAULT);
+
+            // Convertir le tableau d'octets en Bitmap
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
+            // Afficher l'image
+            imageView.setImageBitmap(bitmap);
+        } catch (Exception e) {
+            Log.e(TAG, "Erreur lors du chargement de l'image Base64", e);
+        }
+    }
+
+    /**
+     * Charge une image depuis Firebase Storage
+     * Note: Cette méthode est désactivée puisque Firebase Storage n'est pas utilisé
+     */
+    private static void loadFirebaseStorageImage(Context context, String gsUrl, ImageView imageView) {
+        // Nous n'utilisons pas Firebase Storage
+        Log.w(TAG, "Firebase Storage n'est pas utilisé dans cette application");
+        // Afficher une image par défaut
+        imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+    }
+
+    /**
+     * Charge une image depuis une URL
+     */
+    private static void loadUrlImage(Context context, String url, ImageView imageView) {
+        try {
+            // Charger l'image avec Glide
+            Glide.with(context)
+                .load(url)
+                .into(imageView);
+        } catch (Exception e) {
+            Log.e(TAG, "Erreur lors du chargement de l'image depuis l'URL", e);
+        }
     }
 } 

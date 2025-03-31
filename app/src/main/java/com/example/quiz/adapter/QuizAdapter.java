@@ -5,7 +5,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.RatingBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -61,18 +60,14 @@ public class QuizAdapter extends RecyclerView.Adapter<QuizAdapter.QuizViewHolder
     public class QuizViewHolder extends RecyclerView.ViewHolder {
         private final ImageView imageQuiz;
         private final TextView textTitle;
-        private final TextView textAuthor;
         private final TextView textPlayCount;
-        private final RatingBar ratingBar;
 
         public QuizViewHolder(@NonNull View itemView) {
             super(itemView);
             
             imageQuiz = itemView.findViewById(R.id.imageQuiz);
             textTitle = itemView.findViewById(R.id.textTitle);
-            textAuthor = itemView.findViewById(R.id.textAuthor);
             textPlayCount = itemView.findViewById(R.id.textPlayCount);
-            ratingBar = itemView.findViewById(R.id.ratingBar);
             
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
@@ -84,9 +79,7 @@ public class QuizAdapter extends RecyclerView.Adapter<QuizAdapter.QuizViewHolder
 
         public void bind(Quiz quiz) {
             textTitle.setText(quiz.getTitle());
-            textAuthor.setText(quiz.getAuthorName());
             textPlayCount.setText(String.format("%d joués", quiz.getPlayCount()));
-            ratingBar.setRating((float) quiz.getRating());
             
             // Charger l'image (de base64 si disponible)
             String imageUrl = quiz.getImageUrl();

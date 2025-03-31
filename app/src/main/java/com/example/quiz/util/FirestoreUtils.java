@@ -12,10 +12,13 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.FieldPath;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 /**
  * Classe utilitaire pour gérer les interactions avec Firestore
@@ -109,6 +112,144 @@ public class FirestoreUtils {
                             quiz.setQuestions(questions);
                             listener.onQuestionsLoaded(questions);
                         }
+                    }
+                });
+        }
+    }
+    
+    /**
+     * Charge les questions à partir d'une liste d'IDs
+     */
+    public static void loadQuestionsById(List<String> questionIds, OnQuestionsLoadedListener listener) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            listener.onQuestionsLoaded(new ArrayList<>());
+            return;
+        }
+        
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        List<Question> questions = new ArrayList<>();
+        
+        // Compteur pour suivre les requêtes terminées
+        final int[] count = {0};
+        final int total = questionIds.size();
+        
+        for (String questionId : questionIds) {
+            db.collection("questions").document(questionId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        try {
+                            Question question = Question.fromMap(documentSnapshot.getData(), documentSnapshot.getId());
+                            questions.add(question);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Erreur lors de la conversion de la question", e);
+                        }
+                    }
+                    
+                    // Incrémenter le compteur
+                    count[0]++;
+                    
+                    // Si toutes les requêtes sont terminées, appeler le listener
+                    if (count[0] >= total) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erreur lors du chargement de la question " + questionId, e);
+                    
+                    // Incrémenter le compteur même en cas d'erreur
+                    count[0]++;
+                    
+                    // Si toutes les requêtes sont terminées, appeler le listener
+                    if (count[0] >= total) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
+                    }
+                });
+        }
+    }
+    
+    /**
+     * Méthode alternative utilisant une requête "in" pour charger plusieurs questions en une seule requête
+     * Note: Cette méthode est limitée à 10 IDs maximum par requête Firestore
+     */
+    public static void loadQuestionsByIdBatched(List<String> questionIds, OnQuestionsLoadedListener listener) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            listener.onQuestionsLoaded(new ArrayList<>());
+            return;
+        }
+        
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        List<Question> questions = new ArrayList<>();
+        
+        // Diviser les questionIds en lots de 10 (limite Firestore pour les requêtes "in")
+        List<List<String>> batches = new ArrayList<>();
+        for (int i = 0; i < questionIds.size(); i += 10) {
+            int end = Math.min(i + 10, questionIds.size());
+            batches.add(questionIds.subList(i, end));
+        }
+        
+        // Compteur pour suivre les requêtes par lots terminées
+        final int[] batchCount = {0};
+        final int totalBatches = batches.size();
+        
+        for (List<String> batch : batches) {
+            db.collection("questions")
+                .whereIn(FieldPath.documentId(), batch)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        try {
+                            Question question = Question.fromMap(doc.getData(), doc.getId());
+                            questions.add(question);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Erreur lors de la conversion de la question", e);
+                        }
+                    }
+                    
+                    // Incrémenter le compteur de lots
+                    batchCount[0]++;
+                    
+                    // Si tous les lots sont traités, appeler le listener
+                    if (batchCount[0] >= totalBatches) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erreur lors du chargement d'un lot de questions", e);
+                    
+                    // Incrémenter le compteur de lots même en cas d'erreur
+                    batchCount[0]++;
+                    
+                    // Si tous les lots sont traités, appeler le listener
+                    if (batchCount[0] >= totalBatches) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
                     }
                 });
         }

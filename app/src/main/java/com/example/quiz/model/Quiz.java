@@ -139,7 +139,9 @@ public class Quiz {
         return quiz;
     }
 
-    // Méthode pour convertir Quiz en Map pour Firestore
+    /**
+     * Convertit l'objet Quiz en Map pour Firestore
+     */
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("title", title);
@@ -151,12 +153,12 @@ public class Quiz {
         map.put("playCount", playCount);
         map.put("rating", rating);
         map.put("createdAt", createdAt);
-        map.put("updatedAt", updatedAt);
+        map.put("updatedAt", System.currentTimeMillis());
         map.put("isPublic", isPublic);
         map.put("category", category);
         map.put("difficulty", difficulty);
         map.put("timeLimit", timeLimit);
-        map.put("published", published);
+        map.put("gameMode", gameMode != null ? gameMode.name() : GameMode.STANDARD.name());
         return map;
     }
     
