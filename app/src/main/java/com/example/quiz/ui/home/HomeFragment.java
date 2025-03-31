@@ -134,86 +134,73 @@ public class HomeFragment extends Fragment {
         progressBar.setVisibility(View.VISIBLE);
         
         // Charger les quizzes depuis Firestore
-        loadPopularQuizzes();
-        loadRecentQuizzes();
+        FirestoreUtils.loadAllQuizzes(new FirestoreUtils.OnQuizzesLoadedListener() {
+            @Override
+            public void onQuizzesLoaded(List<Quiz> quizzes) {
+                if (quizzes != null && !quizzes.isEmpty()) {
+                    // Filtrer les quizzes publiés
+                    List<Quiz> publishedQuizzes = new ArrayList<>();
+                    for (Quiz quiz : quizzes) {
+                        if (quiz.isPublished()) {
+                            publishedQuizzes.add(quiz);
+                        }
+                    }
+                    
+                    // Trier par popularité et par date
+                    List<Quiz> sortedByPopularity = new ArrayList<>(publishedQuizzes);
+                    List<Quiz> sortedByDate = new ArrayList<>(publishedQuizzes);
+                    
+                    // Trier par nombre de parties
+                    Collections.sort(sortedByPopularity, (q1, q2) -> 
+                        Integer.compare(q2.getPlayCount(), q1.getPlayCount())
+                    );
+                    
+                    // Trier par date de création (plus récent d'abord)
+                    Collections.sort(sortedByDate, (q1, q2) -> 
+                        Long.compare(q2.getCreatedAt(), q1.getCreatedAt())
+                    );
+                    
+                    // Mettre à jour les listes
+                    popularQuizzes.clear();
+                    recentQuizzes.clear();
+                    
+                    // Limiter à 10 quizzes par catégorie
+                    int popularLimit = Math.min(sortedByPopularity.size(), 10);
+                    int recentLimit = Math.min(sortedByDate.size(), 10);
+                    
+                    popularQuizzes.addAll(sortedByPopularity.subList(0, popularLimit));
+                    recentQuizzes.addAll(sortedByDate.subList(0, recentLimit));
+                    
+                    // Charger les questions pour chaque quiz
+                    for (Quiz quiz : popularQuizzes) {
+                        loadQuestionsForQuiz(quiz);
+                    }
+                    
+                    for (Quiz quiz : recentQuizzes) {
+                        if (!popularQuizzes.contains(quiz)) {
+                            loadQuestionsForQuiz(quiz);
+                        }
+                    }
+                    
+                    // Mettre à jour les adapters
+                    popularAdapter.notifyDataSetChanged();
+                    recentAdapter.notifyDataSetChanged();
+                }
+                
+                progressBar.setVisibility(View.GONE);
+            }
+            
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Erreur lors du chargement des quizzes", e);
+                Toast.makeText(getContext(), "Erreur lors du chargement des quizzes: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                progressBar.setVisibility(View.GONE);
+            }
+        });
     }
     
     private void refreshData() {
         loadData();
-    }
-    
-    private void loadPopularQuizzes() {
-        try {
-            db.collection("quizzes")
-                .orderBy("playCount", Query.Direction.DESCENDING)
-                .limit(10)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        popularQuizzes.clear();
-                        for (DocumentSnapshot document : task.getResult()) {
-                            try {
-                                Quiz quiz = documentToQuiz(document);
-                                if (quiz != null) {
-                                    popularQuizzes.add(quiz);
-                                    
-                                    // Charger les questions pour ce quiz
-                                    loadQuestionsForQuiz(quiz);
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
-                            }
-                        }
-                        
-                        popularAdapter.notifyDataSetChanged();
-                    } else {
-                        Log.e(TAG, "Erreur lors du chargement des quiz populaires", task.getException());
-                        Toast.makeText(getContext(), "Erreur lors du chargement des quiz populaires", Toast.LENGTH_SHORT).show();
-                    }
-                });
-        } catch (Exception e) {
-            Log.e(TAG, "Erreur lors du chargement des quiz populaires: " + e.getMessage());
-            Toast.makeText(getContext(), "Erreur: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            progressBar.setVisibility(View.GONE);
-        }
-    }
-    
-    private void loadRecentQuizzes() {
-        try {
-            db.collection("quizzes")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .limit(10)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        recentQuizzes.clear();
-                        for (DocumentSnapshot document : task.getResult()) {
-                            try {
-                                Quiz quiz = documentToQuiz(document);
-                                if (quiz != null) {
-                                    recentQuizzes.add(quiz);
-                                    
-                                    // Charger les questions pour ce quiz
-                                    loadQuestionsForQuiz(quiz);
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
-                            }
-                        }
-                        
-                        recentAdapter.notifyDataSetChanged();
-                    } else {
-                        Log.e(TAG, "Erreur lors du chargement des quiz récents", task.getException());
-                        Toast.makeText(getContext(), "Erreur lors du chargement des quiz récents", Toast.LENGTH_SHORT).show();
-                    }
-                    
-                    progressBar.setVisibility(View.GONE);
-                });
-        } catch (Exception e) {
-            Log.e(TAG, "Erreur lors du chargement des quiz récents: " + e.getMessage());
-            Toast.makeText(getContext(), "Erreur: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            progressBar.setVisibility(View.GONE);
-        }
     }
     
     private void loadQuestionsForQuiz(Quiz quiz) {
@@ -243,71 +230,5 @@ public class HomeFragment extends Fragment {
                 Log.e(TAG, "Erreur lors du chargement des questions: " + e.getMessage());
             }
         });
-    }
-    
-    private Quiz documentToQuiz(DocumentSnapshot document) {
-        String id = document.getId();
-        String title = document.getString("title");
-        String description = document.getString("description");
-        String imageUrl = document.getString("imageUrl");
-        String authorId = document.getString("authorId");
-        
-        Quiz quiz = new Quiz(id, title, description, imageUrl, authorId, document.getString("authorName"));
-        
-        // Récupérer le nombre de joueurs
-        Number playCount = document.getLong("playCount");
-        if (playCount != null) {
-            quiz.setPlayCount(playCount.intValue());
-        }
-        
-        // Récupérer la note
-        Number rating = document.getDouble("rating");
-        if (rating != null) {
-            quiz.setRating(rating.doubleValue());
-        }
-        
-        // Récupérer la date de création
-        Number createdAt = document.getLong("createdAt");
-        if (createdAt != null) {
-            quiz.setCreatedAt(createdAt.longValue());
-        }
-        
-        // Récupérer la catégorie
-        String category = document.getString("category");
-        if (category != null) {
-            quiz.setCategory(category);
-        }
-        
-        // Récupérer les IDs des questions
-        List<String> questionIds = (List<String>) document.get("questionIds");
-        if (questionIds != null) {
-            quiz.setQuestionIds(questionIds);
-        }
-        
-        return quiz;
-    }
-    
-    private void updateQuizzesList(List<Quiz> quizzes) {
-        // Mettre à jour les listes de quizzes avec ceux reçus
-        popularQuizzes.clear();
-        recentQuizzes.clear();
-        
-        if (quizzes != null && !quizzes.isEmpty()) {
-            // Ajouter les quizzes aux deux listes (pour l'exemple)
-            popularQuizzes.addAll(quizzes);
-            recentQuizzes.addAll(quizzes);
-            
-            // Si la liste contient plus d'un quiz, mélanger l'ordre pour la liste des récents
-            if (quizzes.size() > 1) {
-                Collections.shuffle(recentQuizzes);
-            }
-        }
-        
-        // Notifier les adapters
-        popularAdapter.notifyDataSetChanged();
-        recentAdapter.notifyDataSetChanged();
-        
-        // Cacher le loader
-        progressBar.setVisibility(View.GONE);
     }
 } 

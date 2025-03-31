@@ -256,231 +256,29 @@ public class FirestoreUtils {
     }
     
     /**
-     * Enregistre les questions de démonstration dans Firestore
+     * Charge tous les quizzes depuis Firestore
      */
-    public static void saveDemoQuestionsToFirestore(OnOperationCompleteListener listener) {
-        List<Question> demoQuestions = createDemoQuestions();
+    public static void loadAllQuizzes(OnQuizzesLoadedListener listener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        final int[] savedCount = {0};
-        
-        for (Question question : demoQuestions) {
-            // Vérifier si l'ID est défini pour éviter les duplications
-            if (question.getId() == null || question.getId().isEmpty()) {
-                question.setId(db.collection("questions").document().getId());
-            }
-            
-            db.collection("questions")
-                .document(question.getId())
-                .set(question.toMap())
-                .addOnCompleteListener(task -> {
-                    savedCount[0]++;
-                    
-                    if (!task.isSuccessful()) {
-                        Log.e(TAG, "Erreur lors de l'enregistrement de la question " + question.getId(), task.getException());
-                    }
-                    
-                    if (savedCount[0] >= demoQuestions.size()) {
-                        if (task.isSuccessful()) {
-                            // Créer des quizzes démo avec ces questions
-                            createDemoQuizzes(demoQuestions, listener);
-                        } else {
-                            listener.onError(task.getException());
+        db.collection("quizzes")
+            .get()
+            .addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    List<Quiz> quizzes = new ArrayList<>();
+                    for (DocumentSnapshot document : task.getResult()) {
+                        try {
+                            Quiz quiz = Quiz.fromMap(document.getData(), document.getId());
+                            quizzes.add(quiz);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Erreur lors de la conversion du document en quiz: " + e.getMessage());
                         }
                     }
-                });
-        }
-    }
-    
-    /**
-     * Crée des quizzes de démonstration en utilisant les questions démo
-     */
-    private static void createDemoQuizzes(List<Question> demoQuestions, OnOperationCompleteListener listener) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        
-        // Créer un quiz Histoire/Science
-        Quiz scienceQuiz = new Quiz(
-            "quiz_science",
-            "Histoire des sciences",
-            "Un quiz pour tester vos connaissances sur les grands moments de l'histoire des sciences",
-            null,
-            "system",
-            "Quiz Système"
-        );
-        scienceQuiz.setPlayCount(120);
-        scienceQuiz.setRating(4.5);
-        scienceQuiz.setCreatedAt(System.currentTimeMillis());
-        
-        // Ajouter les questions sur la technologie et l'informatique
-        List<String> scienceQuestionIds = new ArrayList<>();
-        for (Question q : demoQuestions) {
-            if ("Technologie".equals(q.getCategory()) || "Informatique".equals(q.getCategory())) {
-                scienceQuestionIds.add(q.getId());
-            }
-        }
-        scienceQuiz.setQuestionIds(scienceQuestionIds);
-        
-        // Créer un quiz Espace
-        Quiz spaceQuiz = new Quiz(
-            "quiz_space",
-            "Exploration spatiale",
-            "Découvrez les missions qui ont marqué la conquête de l'espace",
-            null,
-            "system",
-            "Quiz Système"
-        );
-        spaceQuiz.setPlayCount(85);
-        spaceQuiz.setRating(4.2);
-        spaceQuiz.setCreatedAt(System.currentTimeMillis() - 86400000); // Hier
-        
-        // Ajouter les questions sur l'espace
-        List<String> spaceQuestionIds = new ArrayList<>();
-        for (Question q : demoQuestions) {
-            if ("Espace".equals(q.getCategory())) {
-                spaceQuestionIds.add(q.getId());
-            }
-        }
-        spaceQuiz.setQuestionIds(spaceQuestionIds);
-        
-        // Sauvegarder les quizzes
-        final int[] savedCount = {0};
-        final int totalQuizzes = 2;
-        
-        db.collection("quizzes").document(scienceQuiz.getId())
-            .set(scienceQuiz.toMap())
-            .addOnCompleteListener(task -> {
-                savedCount[0]++;
-                
-                if (!task.isSuccessful()) {
-                    Log.e(TAG, "Erreur lors de l'enregistrement du quiz Science", task.getException());
-                }
-                
-                if (savedCount[0] >= totalQuizzes) {
-                    listener.onSuccess();
+                    listener.onQuizzesLoaded(quizzes);
+                } else {
+                    Log.e(TAG, "Erreur lors du chargement des quizzes", task.getException());
+                    listener.onError(task.getException());
                 }
             });
-            
-        db.collection("quizzes").document(spaceQuiz.getId())
-            .set(spaceQuiz.toMap())
-            .addOnCompleteListener(task -> {
-                savedCount[0]++;
-                
-                if (!task.isSuccessful()) {
-                    Log.e(TAG, "Erreur lors de l'enregistrement du quiz Espace", task.getException());
-                }
-                
-                if (savedCount[0] >= totalQuizzes) {
-                    listener.onSuccess();
-                }
-            });
-    }
-    
-    /**
-     * Crée les questions de démonstration
-     */
-    private static List<Question> createDemoQuestions() {
-        List<Question> questions = new ArrayList<>();
-        
-        // Question 1
-        List<String> options1 = new ArrayList<>();
-        options1.add("1969");
-        options1.add("1971");
-        options1.add("1975");
-        options1.add("1965");
-        questions.add(new Question(
-            "q1",
-            "En quelle année a été créé le premier microprocesseur Intel 4004?",
-            null,
-            null,
-            options1,
-            1,
-            "Le premier microprocesseur Intel 4004 a été lancé en novembre 1971.",
-            2,
-            "Technologie",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 2
-        List<String> options2 = new ArrayList<>();
-        options2.add("Mer de la Tranquillité");
-        options2.add("Mer de la Sérénité");
-        options2.add("Océan des Tempêtes");
-        options2.add("Mer des Pluies");
-        questions.add(new Question(
-            "q2",
-            "Sur quelle mer lunaire s'est posé Apollo 11?",
-            null,
-            null,
-            options2,
-            0,
-            "Apollo 11 s'est posé sur la Mer de la Tranquillité (Mare Tranquillitatis) le 20 juillet 1969.",
-            3,
-            "Espace",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 3
-        List<String> options3 = new ArrayList<>();
-        options3.add("Alan Turing");
-        options3.add("John von Neumann");
-        options3.add("Ada Lovelace");
-        options3.add("Grace Hopper");
-        questions.add(new Question(
-            "q3",
-            "Qui est considéré comme le père de l'informatique moderne?",
-            null,
-            null,
-            options3,
-            0,
-            "Alan Turing est largement considéré comme le père de l'informatique moderne pour ses travaux sur la machine de Turing et le test de Turing.",
-            2,
-            "Informatique",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 4
-        List<String> options4 = new ArrayList<>();
-        options4.add("Python");
-        options4.add("Java");
-        options4.add("JavaScript");
-        options4.add("C++");
-        questions.add(new Question(
-            "q4",
-            "Quel langage de programmation est le plus utilisé pour l'analyse de données et l'IA?",
-            null,
-            null,
-            options4,
-            0,
-            "Python est le langage de prédilection pour l'analyse de données et l'IA grâce à ses bibliothèques comme TensorFlow, PyTorch, et scikit-learn.",
-            1,
-            "Informatique",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 5
-        List<String> options5 = new ArrayList<>();
-        options5.add("Bitcoin");
-        options5.add("Ethereum");
-        options5.add("Litecoin");
-        options5.add("Ripple");
-        questions.add(new Question(
-            "q5",
-            "Quelle crypto-monnaie a introduit le concept de 'contrat intelligent'?",
-            null,
-            null,
-            options5,
-            1,
-            "Ethereum a introduit le concept de 'contrat intelligent' (smart contract) qui permet d'exécuter des programmes sur la blockchain.",
-            3,
-            "Technologie",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        return questions;
     }
     
     /**
