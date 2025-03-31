@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 public class Quiz {
     public enum GameMode {
@@ -40,6 +41,7 @@ public class Quiz {
     private GameMode gameMode;
     private int difficultyLevel; // 1-5
     private String customRules; // Règles spécifiques pour le quiz
+    private boolean published;
     
     // Constructeur vide requis pour Firestore
     public Quiz() {
@@ -50,6 +52,7 @@ public class Quiz {
         createdAt = System.currentTimeMillis();
         updatedAt = System.currentTimeMillis();
         isPublic = true;
+        published = false;
     }
 
     // Constructeur pour créer un quiz avec les informations de base
@@ -70,6 +73,7 @@ public class Quiz {
         this.category = "";
         this.difficulty = "Moyen";
         this.timeLimit = 0;
+        this.published = false;
     }
 
     // Méthode pour convertir un document Firestore en Quiz
@@ -128,12 +132,16 @@ public class Quiz {
             quiz.timeLimit = (Integer) map.get("timeLimit");
         }
         
+        if (map.get("published") instanceof Boolean) {
+            quiz.published = (Boolean) map.get("published");
+        }
+        
         return quiz;
     }
 
     // Méthode pour convertir Quiz en Map pour Firestore
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new java.util.HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         map.put("title", title);
         map.put("description", description);
         map.put("imageUrl", imageUrl);
@@ -148,6 +156,7 @@ public class Quiz {
         map.put("category", category);
         map.put("difficulty", difficulty);
         map.put("timeLimit", timeLimit);
+        map.put("published", published);
         return map;
     }
     
@@ -355,5 +364,13 @@ public class Quiz {
 
     public void setCustomRules(String customRules) {
         this.customRules = customRules;
+    }
+
+    public boolean isPublished() {
+        return published;
+    }
+
+    public void setPublished(boolean published) {
+        this.published = published;
     }
 } 

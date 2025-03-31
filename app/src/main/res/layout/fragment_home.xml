@@ -12,6 +12,17 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- Bouton pour synchroniser les questions -->
+        <Button
+            android:id="@+id/buttonSyncQuestions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Synchroniser les questions avec Firebase"
+            android:textAllCaps="false"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <!-- Section des quizzes récents -->
         <TextView
             android:id="@+id/textRecentTitle"
@@ -19,8 +30,9 @@
             android:layout_height="wrap_content"
             android:text="@string/recent_quizzes"
             android:textAppearance="?attr/textAppearanceHeadline6"
+            android:layout_marginTop="16dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/buttonSyncQuestions" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewRecent"

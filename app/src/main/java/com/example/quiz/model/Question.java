@@ -2,148 +2,97 @@ package com.example.quiz.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Modèle représentant une question dans un quiz
+ */
 public class Question {
+    
+    /**
+     * Types de questions possibles
+     */
     public enum Type {
-        MULTIPLE_CHOICE,
-        SINGLE_CHOICE,
-        FREE_TEXT,
-        FILL_IN_BLANKS,
-        MATCHING
+        SINGLE_CHOICE,     // Choix unique
+        MULTIPLE_CHOICE,   // Choix multiple
+        FREE_TEXT,         // Texte libre
+        FILL_IN_BLANKS,    // Texte à trous
+        MATCHING           // Association
     }
-
+    
     private String id;
     private String text;
-    private Type type;
+    private String imageUrl;
+    private String videoUrl;
     private List<String> options;
-    private List<String> correctAnswers;
+    private int correctAnswerIndex;
     private String explanation;
-    private String mediaUrl;
-    private String mediaType; // "image", "video", "audio"
-    private int points;
-    private int timeLimit; // en secondes, 0 = pas de limite
-    private int correctOption;
     private int difficulty; // 1-5
     private String category;
     private long createdAt;
-    private String createdBy;
-
-    // Constructeur vide pour Firebase
+    private String authorId;
+    private Type type;
+    
+    /**
+     * Constructeur vide requis pour Firestore
+     */
     public Question() {
         options = new ArrayList<>();
-    }
-
-    public Question(String id, String text, Type type, List<String> options, 
-                   List<String> correctAnswers, String explanation) {
-        this.id = id;
-        this.text = text;
-        this.type = type;
-        this.options = options;
-        this.correctAnswers = correctAnswers;
-        this.explanation = explanation;
-        this.points = 10; // valeur par défaut
-        this.timeLimit = 0; // pas de limite par défaut
+        type = Type.SINGLE_CHOICE;
     }
     
-    // Constructeur pour les données de démonstration
-    public Question(String id, String text, String mediaUrl, String mediaType, 
-                   List<String> options, int correctOption, String explanation,
-                   int difficulty, String category, long createdAt, String createdBy) {
+    /**
+     * Constructeur complet
+     */
+    public Question(String id, String text, String imageUrl, String videoUrl, 
+            List<String> options, int correctAnswerIndex, String explanation, 
+            int difficulty, String category, long createdAt, String authorId) {
         this.id = id;
         this.text = text;
-        this.mediaUrl = mediaUrl;
-        this.mediaType = mediaType;
-        this.options = options;
-        this.correctOption = correctOption;
+        this.imageUrl = imageUrl;
+        this.videoUrl = videoUrl;
+        this.options = options != null ? options : new ArrayList<>();
+        this.correctAnswerIndex = correctAnswerIndex;
         this.explanation = explanation;
         this.difficulty = difficulty;
         this.category = category;
         this.createdAt = createdAt;
-        this.createdBy = createdBy;
-        this.type = Type.SINGLE_CHOICE;  // Par défaut pour la démo
-        this.correctAnswers = new ArrayList<>();
-        if (options != null && correctOption >= 0 && correctOption < options.size()) {
-            this.correctAnswers.add(options.get(correctOption));
-        }
-        this.points = 10; // valeur par défaut
-        this.timeLimit = 0; // pas de limite par défaut
-    }
-
-    // Méthode pour mélanger les options
-    public void shuffleOptions() {
-        if (options != null && type != Type.MATCHING) {
-            List<String> shuffled = new ArrayList<>(options);
-            Collections.shuffle(shuffled);
-            this.options = shuffled;
-        }
+        this.authorId = authorId;
+        this.type = Type.SINGLE_CHOICE;
     }
     
-    // Méthode pour vérifier une réponse
-    public boolean checkAnswer(List<String> userAnswers) {
-        if (userAnswers == null || correctAnswers == null) {
-            return false;
-        }
-        
-        if (type == Type.FILL_IN_BLANKS || type == Type.FREE_TEXT) {
-            // Pour ces types, nous vérifions si la réponse est incluse (insensible à la casse)
-            if (userAnswers.size() != 1 || correctAnswers.size() != 1) {
-                return false;
-            }
-            return userAnswers.get(0).trim().equalsIgnoreCase(correctAnswers.get(0).trim());
-        } else if (type == Type.MULTIPLE_CHOICE) {
-            // Toutes les bonnes réponses doivent être sélectionnées
-            if (userAnswers.size() != correctAnswers.size()) {
-                return false;
-            }
-            return new ArrayList<>(userAnswers).containsAll(correctAnswers);
-        } else if (type == Type.SINGLE_CHOICE) {
-            // Une seule réponse correcte
-            if (userAnswers.size() != 1 || correctAnswers.size() != 1) {
-                return false;
-            }
-            return userAnswers.get(0).equals(correctAnswers.get(0));
-        } else if (type == Type.MATCHING) {
-            // Toutes les paires doivent correspondre
-            if (userAnswers.size() != correctAnswers.size()) {
-                return false;
-            }
-            for (int i = 0; i < userAnswers.size(); i++) {
-                if (!userAnswers.get(i).equals(correctAnswers.get(i))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        
-        return false;
+    /**
+     * Constructeur avec type spécifié
+     */
+    public Question(String id, String text, String imageUrl, String videoUrl, 
+            List<String> options, int correctAnswerIndex, String explanation, 
+            int difficulty, String category, long createdAt, String authorId, Type type) {
+        this(id, text, imageUrl, videoUrl, options, correctAnswerIndex, explanation, 
+                difficulty, category, createdAt, authorId);
+        this.type = type;
     }
-
-    // Méthode pour convertir un document Firestore en Question
-    public static Question fromMap(Map<String, Object> map, String documentId) {
+    
+    /**
+     * Crée une Question à partir d'un Map Firestore
+     */
+    public static Question fromMap(Map<String, Object> map, String id) {
         Question question = new Question();
-        question.id = documentId;
+        question.id = id;
         question.text = (String) map.get("text");
-        question.mediaUrl = (String) map.get("mediaUrl");
-        question.mediaType = (String) map.get("mediaType");
+        question.imageUrl = (String) map.get("imageUrl");
+        question.videoUrl = (String) map.get("videoUrl");
+        question.options = (List<String>) map.get("options");
         
-        // Récupérer les options
-        List<String> options = (List<String>) map.get("options");
-        if (options != null) {
-            question.options = options;
-        }
-        
-        // Récupérer l'option correcte
-        if (map.get("correctOption") instanceof Long) {
-            question.correctOption = ((Long) map.get("correctOption")).intValue();
-        } else if (map.get("correctOption") instanceof Integer) {
-            question.correctOption = (Integer) map.get("correctOption");
+        if (map.get("correctAnswerIndex") instanceof Long) {
+            question.correctAnswerIndex = ((Long) map.get("correctAnswerIndex")).intValue();
+        } else if (map.get("correctAnswerIndex") instanceof Integer) {
+            question.correctAnswerIndex = (Integer) map.get("correctAnswerIndex");
         }
         
         question.explanation = (String) map.get("explanation");
         
-        // Récupérer la difficulté
         if (map.get("difficulty") instanceof Long) {
             question.difficulty = ((Long) map.get("difficulty")).intValue();
         } else if (map.get("difficulty") instanceof Integer) {
@@ -152,99 +101,55 @@ public class Question {
         
         question.category = (String) map.get("category");
         
-        // Récupérer la date de création
         if (map.get("createdAt") instanceof Long) {
             question.createdAt = (Long) map.get("createdAt");
-        } else if (map.get("createdAt") instanceof java.util.Date) {
-            question.createdAt = ((java.util.Date) map.get("createdAt")).getTime();
         }
         
-        question.createdBy = (String) map.get("createdBy");
+        question.authorId = (String) map.get("authorId");
+        
+        // Récupérer le type de question
+        String typeStr = (String) map.get("type");
+        if (typeStr != null) {
+            try {
+                question.type = Type.valueOf(typeStr);
+            } catch (IllegalArgumentException e) {
+                question.type = Type.SINGLE_CHOICE; // Type par défaut
+            }
+        } else {
+            question.type = Type.SINGLE_CHOICE; // Type par défaut
+        }
         
         return question;
     }
-
-    // Méthode pour convertir Question en Map pour Firestore
+    
+    /**
+     * Convertit l'objet Question en Map pour Firestore
+     */
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new java.util.HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         map.put("text", text);
-        map.put("mediaUrl", mediaUrl);
-        map.put("mediaType", mediaType);
+        map.put("imageUrl", imageUrl);
+        map.put("videoUrl", videoUrl);
         map.put("options", options);
-        map.put("correctOption", correctOption);
+        map.put("correctAnswerIndex", correctAnswerIndex);
         map.put("explanation", explanation);
         map.put("difficulty", difficulty);
         map.put("category", category);
         map.put("createdAt", createdAt);
-        map.put("createdBy", createdBy);
+        map.put("authorId", authorId);
+        map.put("type", type != null ? type.name() : Type.SINGLE_CHOICE.name());
         return map;
     }
-
-    // Créer des données de démonstration
-    public static List<Question> getDemoQuestions() {
-        List<Question> questions = new ArrayList<>();
-        
-        // Question 1
-        List<String> options1 = new ArrayList<>();
-        options1.add("1969");
-        options1.add("1971");
-        options1.add("1975");
-        options1.add("1965");
-        questions.add(new Question(
-            "q1",
-            "En quelle année a été créé le premier microprocesseur Intel 4004?",
-            null,
-            null,
-            options1,
-            1,
-            "Le premier microprocesseur Intel 4004 a été lancé en novembre 1971.",
-            2,
-            "Technologie",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 2
-        List<String> options2 = new ArrayList<>();
-        options2.add("Mer de la Tranquillité");
-        options2.add("Mer de la Sérénité");
-        options2.add("Océan des Tempêtes");
-        options2.add("Mer des Pluies");
-        questions.add(new Question(
-            "q2",
-            "Sur quelle mer lunaire s'est posé Apollo 11?",
-            null,
-            null,
-            options2,
-            0,
-            "Apollo 11 s'est posé sur la Mer de la Tranquillité (Mare Tranquillitatis) le 20 juillet 1969.",
-            3,
-            "Espace",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 3
-        List<String> options3 = new ArrayList<>();
-        options3.add("Alan Turing");
-        options3.add("John von Neumann");
-        options3.add("Ada Lovelace");
-        options3.add("Grace Hopper");
-        questions.add(new Question(
-            "q3",
-            "Qui est considéré comme le père de l'informatique moderne?",
-            null,
-            null,
-            options3,
-            0,
-            "Alan Turing est largement considéré comme le père de l'informatique moderne pour ses travaux sur la machine de Turing et le test de Turing.",
-            2,
-            "Informatique",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        return questions;
+    
+    /**
+     * Mélange les options tout en conservant la correspondance avec la réponse correcte
+     */
+    public void shuffleOptions() {
+        if (options != null && options.size() > 1) {
+            String correctAnswer = options.get(correctAnswerIndex);
+            Collections.shuffle(options);
+            correctAnswerIndex = options.indexOf(correctAnswer);
+        }
     }
 
     // Getters et Setters
@@ -264,12 +169,20 @@ public class Question {
         this.text = text;
     }
 
-    public Type getType() {
-        return type;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setType(Type type) {
-        this.type = type;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
     }
 
     public List<String> getOptions() {
@@ -280,12 +193,12 @@ public class Question {
         this.options = options;
     }
 
-    public List<String> getCorrectAnswers() {
-        return correctAnswers;
+    public int getCorrectAnswerIndex() {
+        return correctAnswerIndex;
     }
 
-    public void setCorrectAnswers(List<String> correctAnswers) {
-        this.correctAnswers = correctAnswers;
+    public void setCorrectAnswerIndex(int correctAnswerIndex) {
+        this.correctAnswerIndex = correctAnswerIndex;
     }
 
     public String getExplanation() {
@@ -294,46 +207,6 @@ public class Question {
 
     public void setExplanation(String explanation) {
         this.explanation = explanation;
-    }
-
-    public String getMediaUrl() {
-        return mediaUrl;
-    }
-
-    public void setMediaUrl(String mediaUrl) {
-        this.mediaUrl = mediaUrl;
-    }
-
-    public String getMediaType() {
-        return mediaType;
-    }
-
-    public void setMediaType(String mediaType) {
-        this.mediaType = mediaType;
-    }
-
-    public int getPoints() {
-        return points;
-    }
-
-    public void setPoints(int points) {
-        this.points = points;
-    }
-
-    public int getTimeLimit() {
-        return timeLimit;
-    }
-
-    public void setTimeLimit(int timeLimit) {
-        this.timeLimit = timeLimit;
-    }
-
-    public int getCorrectOption() {
-        return correctOption;
-    }
-
-    public void setCorrectOption(int correctOption) {
-        this.correctOption = correctOption;
     }
 
     public int getDifficulty() {
@@ -360,11 +233,19 @@ public class Question {
         this.createdAt = createdAt;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
+    public String getAuthorId() {
+        return authorId;
     }
 
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
+    public void setAuthorId(String authorId) {
+        this.authorId = authorId;
+    }
+    
+    public Type getType() {
+        return type;
+    }
+    
+    public void setType(Type type) {
+        this.type = type;
     }
 } 

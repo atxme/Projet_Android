@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.quiz.R;
 import com.example.quiz.adapter.QuizAdapter;
 import com.example.quiz.model.Quiz;
+import com.example.quiz.util.FirestoreUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -46,7 +48,7 @@ public class HomeFragment extends Fragment {
     
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
-    private boolean useFirestore = false; // Désactiver Firestore temporairement à cause des problèmes de permission
+    private boolean useFirestore = true; // Activé par défaut
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -58,7 +60,7 @@ public class HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        // Initialiser Firebase (mais on ne l'utilisera que si les permissions sont OK)
+        // Initialiser Firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         
@@ -80,7 +82,15 @@ public class HomeFragment extends Fragment {
             });
         }
         
-        // Charger les données - d'abord essayer Firestore, sinon utiliser les données locales
+        // Ajouter un bouton pour synchroniser les questions avec Firestore (pour démo)
+        Button syncButton = view.findViewById(R.id.buttonSyncQuestions);
+        if (syncButton != null) {
+            syncButton.setOnClickListener(v -> {
+                syncDemoQuestionsToFirestore();
+            });
+        }
+        
+        // Charger les données
         loadData();
     }
     
@@ -196,6 +206,9 @@ public class HomeFragment extends Fragment {
                                 Quiz quiz = documentToQuiz(document);
                                 if (quiz != null) {
                                     recentQuizzes.add(quiz);
+                                    
+                                    // Charger les questions pour ce quiz
+                                    loadQuestionsForQuiz(quiz);
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
@@ -225,6 +238,23 @@ public class HomeFragment extends Fragment {
         }
     }
     
+    private void loadQuestionsForQuiz(Quiz quiz) {
+        FirestoreUtils.loadQuestionsForQuiz(quiz, new FirestoreUtils.OnQuestionsLoadedListener() {
+            @Override
+            public void onQuestionsLoaded(List<com.example.quiz.model.Question> questions) {
+                // Mettre à jour l'adapter pour refléter le nombre de questions chargées
+                recentAdapter.notifyDataSetChanged();
+                popularAdapter.notifyDataSetChanged();
+                yourAdapter.notifyDataSetChanged();
+            }
+            
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Erreur lors du chargement des questions pour le quiz " + quiz.getId(), e);
+            }
+        });
+    }
+    
     private void loadPopularQuizzes() {
         try {
             db.collection("quizzes")
@@ -239,6 +269,9 @@ public class HomeFragment extends Fragment {
                                 Quiz quiz = documentToQuiz(document);
                                 if (quiz != null) {
                                     popularQuizzes.add(quiz);
+                                    
+                                    // Charger les questions pour ce quiz
+                                    loadQuestionsForQuiz(quiz);
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
@@ -288,6 +321,9 @@ public class HomeFragment extends Fragment {
                                 Quiz quiz = documentToQuiz(document);
                                 if (quiz != null) {
                                     yourQuizzes.add(quiz);
+                                    
+                                    // Charger les questions pour ce quiz
+                                    loadQuestionsForQuiz(quiz);
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Erreur lors de la conversion du document: " + e.getMessage());
@@ -337,11 +373,41 @@ public class HomeFragment extends Fragment {
             quiz.setRating(rating);
             quiz.setCreatedAt(createdAt);
             
+            // Récupérer la liste des IDs de questions
+            List<String> questionIds = (List<String>) document.get("questionIds");
+            if (questionIds != null) {
+                quiz.setQuestionIds(questionIds);
+            }
+            
             return quiz;
         } catch (Exception e) {
             Log.e(TAG, "Erreur lors de la conversion du document en quiz", e);
             return null;
         }
+    }
+    
+    private void syncDemoQuestionsToFirestore() {
+        if (getContext() == null) return;
+        
+        Toast.makeText(getContext(), "Synchronisation des questions de démonstration...", Toast.LENGTH_SHORT).show();
+        
+        FirestoreUtils.saveDemoQuestionsToFirestore(new FirestoreUtils.OnOperationCompleteListener() {
+            @Override
+            public void onSuccess() {
+                if (getContext() == null) return;
+                Toast.makeText(getContext(), "Questions de démonstration synchronisées avec succès!", Toast.LENGTH_SHORT).show();
+                
+                // Recharger les données
+                loadData();
+            }
+            
+            @Override
+            public void onError(Exception e) {
+                if (getContext() == null) return;
+                Toast.makeText(getContext(), "Erreur lors de la synchronisation: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Erreur lors de la synchronisation des questions de démo", e);
+            }
+        });
     }
     
     private List<Quiz> createDemoQuizzes() {

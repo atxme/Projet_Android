@@ -211,8 +211,18 @@ public class MediaUtils {
                     }
                 } else {
                     // Vérifier si les données média sont stockées directement dans la question
-                    String base64Media = question.getMediaUrl();
-                    String mediaType = question.getMediaType();
+                    String imageUrl = question.getImageUrl();
+                    String videoUrl = question.getVideoUrl();
+                    String mediaType = null;
+                    String base64Media = null;
+                    
+                    if (imageUrl != null && !imageUrl.isEmpty()) {
+                        mediaType = "image";
+                        base64Media = imageUrl;
+                    } else if (videoUrl != null && !videoUrl.isEmpty()) {
+                        mediaType = "video";
+                        base64Media = videoUrl;
+                    }
                     
                     if (base64Media != null && !base64Media.isEmpty()) {
                         listener.onBase64MediaLoaded(base64Media, mediaType);

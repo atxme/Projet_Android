@@ -1,1 +1,9 @@
 /build
+/release
+/debug
+/outputs
+*.iml
+*.hprof
+.cxx
+/schemas
+google-services.json
