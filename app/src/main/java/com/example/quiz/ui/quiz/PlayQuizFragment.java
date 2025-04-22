@@ -180,7 +180,7 @@ public class PlayQuizFragment extends Fragment {
         
         // Réinitialiser le background de toutes les options
         for (RadioButton option : radioOptions) {
-            option.setBackgroundResource(android.R.drawable.btn_radio);
+            option.setBackgroundResource(R.drawable.option_background);
         }
         
         // Obtenir la question courante

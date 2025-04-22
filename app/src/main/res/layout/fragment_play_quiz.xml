@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -85,7 +86,11 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Option 1"
-            android:padding="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="12dp"
+            android:button="@null"
             android:background="@drawable/option_background" />
 
         <RadioButton
@@ -94,7 +99,11 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Option 2"
-            android:padding="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="12dp"
+            android:button="@null"
             android:background="@drawable/option_background" />
 
         <RadioButton
@@ -103,7 +112,11 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Option 3"
-            android:padding="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="12dp"
+            android:button="@null"
             android:background="@drawable/option_background" />
 
         <RadioButton
@@ -111,7 +124,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Option 4"
-            android:padding="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="12dp"
+            android:button="@null"
             android:background="@drawable/option_background" />
 
     </RadioGroup>
