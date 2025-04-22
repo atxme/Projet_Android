@@ -65,7 +65,7 @@ public class GameModeManager {
      * Démarre un timer pour le mode contre la montre.
      */
     private void startTimer(int seconds) {
-        if (seconds <= 0) seconds = 60; // Valeur par défaut
+        if (seconds <= 0) seconds = 10; // Valeur par défaut: 10 secondes
         isTimerRunning = true;
 
         countDownTimer = new CountDownTimer(seconds * 1000L, 1000) {

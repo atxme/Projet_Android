@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -152,6 +153,25 @@
         android:layout_marginBottom="16dp"
         android:text="Description détaillée du quiz..."
         app:layout_constraintTop_toBottomOf="@id/textDescriptionLabel"
+        app:layout_constraintBottom_toTopOf="@id/textGameModeLabel" />
+
+    <!-- Mode de jeu -->
+    <TextView
+        android:id="@+id/textGameModeLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="Mode de jeu"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@id/spinnerGameMode"
+        app:layout_constraintTop_toBottomOf="@id/textQuizDescription" />
+
+    <Spinner
+        android:id="@+id/spinnerGameMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toTopOf="@id/buttonStartQuiz" />
 
     <!-- Bouton pour commencer le quiz -->

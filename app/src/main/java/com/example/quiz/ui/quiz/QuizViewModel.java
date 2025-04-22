@@ -14,7 +14,9 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class QuizViewModel extends ViewModel {
     private static final String TAG = "QuizViewModel";
@@ -34,6 +36,12 @@ public class QuizViewModel extends ViewModel {
     // Compteurs pour les statistiques
     private int correctAnswers = 0;
     private int totalAnswers = 0;
+    
+    // Stockage des réponses des utilisateurs
+    private Map<String, Integer> userAnswers = new HashMap<>();
+    
+    // Mode de jeu sélectionné
+    private Quiz.GameMode selectedGameMode = null;
     
     // Getters pour les LiveData
     public LiveData<List<Question>> getQuestions() {
@@ -64,10 +72,20 @@ public class QuizViewModel extends ViewModel {
         return timeRemaining;
     }
     
+    // Méthodes pour le mode de jeu sélectionné
+    public Quiz.GameMode getSelectedGameMode() {
+        return selectedGameMode;
+    }
+    
+    public void setSelectedGameMode(Quiz.GameMode mode) {
+        this.selectedGameMode = mode;
+    }
+    
     // Méthode pour charger un quiz à partir de son ID
     public void loadQuiz(String quizId) {
         this.quizId = quizId;
         isLoading.setValue(true);
+        errorMessage.setValue(null);
         
         FirestoreUtils.loadQuiz(quizId, new FirestoreUtils.OnQuizLoadedListener() {
             @Override
@@ -82,7 +100,7 @@ public class QuizViewModel extends ViewModel {
             public void onError(Exception e) {
                 Log.e(TAG, "Erreur lors du chargement du quiz", e);
                 isLoading.setValue(false);
-                errorMessage.setValue("Erreur lors du chargement du quiz: " + e.getMessage());
+                errorMessage.setValue("Erreur: " + e.getMessage());
             }
         });
     }
@@ -118,8 +136,8 @@ public class QuizViewModel extends ViewModel {
                 if (quiz.getTimeLimit() > 0) {
                     timeRemaining.setValue(quiz.getTimeLimit());
                 } else if (quiz.getGameMode() == Quiz.GameMode.TIMED) {
-                    // Valeur par défaut pour le mode contre la montre
-                    timeRemaining.setValue(60);
+                    // Valeur par défaut pour le mode contre la montre (10 secondes)
+                    timeRemaining.setValue(10);
                 }
             }
             

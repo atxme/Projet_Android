@@ -1,6 +1,7 @@
 package com.example.quiz.ui.quiz;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -70,35 +71,44 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        // Initialiser le ViewModel
+        // Initialiser le ViewModel en premier
         viewModel = new ViewModelProvider(this).get(QuizViewModel.class);
         
         // Initialiser le GameModeManager
         gameModeManager = new GameModeManager(this);
         
-        // Récupérer l'ID du quiz passé en argument
+        // Récupérer l'id du quiz
         if (getArguments() != null) {
             quizId = getArguments().getString("quizId");
+            // Récupérer le mode de jeu sélectionné, s'il est présent dans les arguments
+            String gameModeStr = getArguments().getString("gameMode");
+            if (gameModeStr != null && !gameModeStr.isEmpty()) {
+                try {
+                    // Convertir la chaîne en enum GameMode
+                    Quiz.GameMode selectedGameMode = Quiz.GameMode.valueOf(gameModeStr);
+                    // Stocker temporairement le mode sélectionné dans le ViewModel
+                    viewModel.setSelectedGameMode(selectedGameMode);
+                } catch (IllegalArgumentException e) {
+                    Log.e(TAG, "Mode de jeu invalide: " + gameModeStr, e);
+                }
+            }
         }
         
         // Initialiser les vues
         initViews(view);
         
-        // Configurer les listeners
-        setupListeners();
-        
-        // Observer les changements dans le ViewModel
+        // Configurer les observateurs
         setupObservers();
         
-        // Afficher le chargement
-        showLoading(true);
+        // Configurer les écouteurs d'événements
+        setupListeners();
         
         // Charger le quiz
         if (quizId != null && !quizId.isEmpty()) {
             viewModel.loadQuiz(quizId);
         } else {
-            Toast.makeText(getContext(), "ID de quiz invalide", Toast.LENGTH_SHORT).show();
-            showLoading(false);
+            Toast.makeText(requireContext(), "ID de quiz manquant", Toast.LENGTH_SHORT).show();
+            navigateBack();
         }
     }
     
@@ -138,8 +148,14 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         buttonNext.setOnClickListener(v -> {
             // Vérifier si c'est la dernière question
             if (viewModel.getCurrentQuestionIndex().getValue() < viewModel.getQuestions().getValue().size() - 1) {
+                // Arrêter d'abord tout timer en cours
+                gameModeManager.stopTimer();
+                
                 // Passer à la question suivante
                 viewModel.nextQuestion();
+                
+                // Note: La réinitialisation du timer à 10s est maintenant gérée directement dans displayCurrentQuestion
+                // qui sera appelée via l'observateur sur currentQuestionIndex
             } else {
                 // Afficher les résultats
                 showResults();
@@ -167,15 +183,18 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
                 textQuizTitle.setText(quiz.getTitle());
                 
                 // Initialiser le mode de jeu
-                Quiz.GameMode gameMode = quiz.getGameMode();
+                Quiz.GameMode gameMode = viewModel.getSelectedGameMode();
                 if (gameMode == null) {
-                    gameMode = Quiz.GameMode.STANDARD; // Mode par défaut
+                    gameMode = quiz.getGameMode();
+                    if (gameMode == null) {
+                        gameMode = Quiz.GameMode.STANDARD; // Mode par défaut
+                    }
                 }
                 
                 // Afficher le mode de jeu
                 updateGameModeDisplay(gameMode);
                 
-                // Initialiser le GameModeManager avec le mode de jeu du quiz
+                // Initialiser le GameModeManager avec le mode de jeu sélectionné
                 gameModeManager.initializeGameMode(gameMode, quiz.getTimeLimit());
             }
         });
@@ -295,11 +314,27 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
             }
         }
         
-        // Réinitialiser le timer si nécessaire
+        // Réinitialiser et redémarrer le timer pour le mode contre la montre
         Quiz currentQuiz = viewModel.getCurrentQuiz().getValue();
-        if (currentQuiz != null && currentQuiz.getGameMode() == Quiz.GameMode.TIMED) {
+        if ((currentQuiz != null && currentQuiz.getGameMode() == Quiz.GameMode.TIMED) || 
+            gameModeManager.getCurrentGameMode() == Quiz.GameMode.TIMED) {
+            // Mettre à jour l'affichage du temps restant dans le ViewModel
+            viewModel.updateTimeRemaining(10);
+            
+            // Arrêter tout timer existant
             gameModeManager.stopTimer();
-            gameModeManager.initializeGameMode(Quiz.GameMode.TIMED, currentQuiz.getTimeLimit());
+            
+            // Pause pour s'assurer que l'arrêt est terminé
+            new Handler().postDelayed(() -> {
+                // Démarrer un nouveau timer de 10 secondes
+                gameModeManager.initializeGameMode(Quiz.GameMode.TIMED, 10);
+                
+                // S'assurer que le timer est visible
+                if (textTimer != null) {
+                    textTimer.setVisibility(View.VISIBLE);
+                    textTimer.setText("Temps: 10 s");
+                }
+            }, 100); // court délai pour assurer le redémarrage propre
         }
     }
     
@@ -432,7 +467,41 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
             getActivity().runOnUiThread(() -> {
                 if (!questionAnswered) {
                     Toast.makeText(getContext(), "Temps écoulé !", Toast.LENGTH_SHORT).show();
-                    validateAnswer();
+                    
+                    // Marquer la question comme répondue
+                    questionAnswered = true;
+                    
+                    Question currentQuestion = viewModel.getCurrentQuestion();
+                    if (currentQuestion != null) {
+                        // Afficher la réponse correcte
+                        int correctIndex = currentQuestion.getCorrectAnswerIndex();
+                        if (correctIndex >= 0 && correctIndex < radioOptions.length) {
+                            radioOptions[correctIndex].setBackgroundResource(R.drawable.option_correct_background);
+                        }
+                        
+                        // Désactiver toutes les options
+                        for (RadioButton option : radioOptions) {
+                            option.setEnabled(false);
+                        }
+                        
+                        // Afficher l'explication
+                        textExplanation.setText(currentQuestion.getExplanation());
+                        textExplanation.setVisibility(View.VISIBLE);
+                        
+                        // Cacher le bouton de validation
+                        buttonValidate.setVisibility(View.GONE);
+                        
+                        // Enregistrer la réponse comme incorrecte
+                        viewModel.updateScore(0);
+                        
+                        // Afficher le bouton pour continuer
+                        if (viewModel.getCurrentQuestionIndex().getValue() < viewModel.getQuestions().getValue().size() - 1) {
+                            buttonNext.setText("Question suivante");
+                        } else {
+                            buttonNext.setText("Voir les résultats");
+                        }
+                        buttonNext.setVisibility(View.VISIBLE);
+                    }
                 }
             });
         }
@@ -477,6 +546,17 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
                 }
                 buttonValidate.setEnabled(enabled);
             });
+        }
+    }
+    
+    /**
+     * Méthode pour revenir à l'écran précédent
+     */
+    private void navigateBack() {
+        try {
+            Navigation.findNavController(requireView()).popBackStack();
+        } catch (Exception e) {
+            Log.e(TAG, "Erreur lors de la navigation retour", e);
         }
     }
     

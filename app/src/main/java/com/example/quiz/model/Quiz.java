@@ -10,17 +10,7 @@ public class Quiz {
     public enum GameMode {
         STANDARD,         // Quiz standard avec points fixes
         TIMED,            // Contre la montre
-        SHUFFLE_OPTIONS,  // Les réponses changent d'ordre toutes les 2 secondes
-        FASTEST,          // Le plus rapide gagne
-        TOP_THREE,        // Les 3 meilleurs sur 4 gagnent des points
-        REGRESSIVE,       // Points décroissants selon l'ordre de réponse
-        SHARED,           // Le gagnant partage avec un autre joueur
-        DOUBLE_OR_NOTHING, // Quitte ou double
-        SURVIVAL,         // Mode survie avec 3 vies
-        RANDOM_CHALLENGE, // Défi aléatoire
-        MARATHON,         // Série de questions consécutives
-        TRAP,             // Une réponse fait perdre des points
-        MEMORY            // Question visible pendant un temps limité
+        SHUFFLE_OPTIONS   // Les réponses changent d'ordre toutes les 2 secondes
     }
 
     private String id;

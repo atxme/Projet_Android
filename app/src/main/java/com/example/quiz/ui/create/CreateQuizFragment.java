@@ -197,7 +197,7 @@ public class CreateQuizFragment extends Fragment {
                 
                 // Si le mode contre la montre est sélectionné, mais aucune limite de temps n'est définie
                 if (timeLimit <= 0) {
-                    timeLimit = 60; // Valeur par défaut pour le mode contre la montre
+                    timeLimit = 10; // Valeur par défaut pour le mode contre la montre (10 secondes)
                     editTextTimeLimit.setText(String.valueOf(timeLimit));
                 }
                 break;

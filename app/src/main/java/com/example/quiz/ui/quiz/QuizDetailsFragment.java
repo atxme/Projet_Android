@@ -5,8 +5,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +22,9 @@ import com.example.quiz.R;
 import com.example.quiz.model.Quiz;
 import com.example.quiz.util.FirestoreUtils;
 import com.example.quiz.util.MediaUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class QuizDetailsFragment extends Fragment {
     private static final String TAG = "QuizDetailsFragment";
@@ -36,6 +41,7 @@ public class QuizDetailsFragment extends Fragment {
     private TextView textQuestionCount;
     private TextView textPlayCount;
     private TextView textQuizDescription;
+    private Spinner spinnerGameMode;
     private Button buttonStartQuiz;
 
     @Override
@@ -65,6 +71,9 @@ public class QuizDetailsFragment extends Fragment {
         // Initialiser les vues
         initViews(view);
         
+        // Configurer le spinner des modes de jeu
+        setupGameModeSpinner();
+        
         // Charger les détails du quiz
         loadQuizDetails();
     }
@@ -78,9 +87,27 @@ public class QuizDetailsFragment extends Fragment {
         textQuestionCount = view.findViewById(R.id.textQuestionCount);
         textPlayCount = view.findViewById(R.id.textPlayCount);
         textQuizDescription = view.findViewById(R.id.textQuizDescription);
+        spinnerGameMode = view.findViewById(R.id.spinnerGameMode);
         buttonStartQuiz = view.findViewById(R.id.buttonStartQuiz);
         
         buttonStartQuiz.setOnClickListener(v -> startQuiz());
+    }
+    
+    private void setupGameModeSpinner() {
+        // Créer une liste des modes de jeu
+        List<String> gameModeNames = new ArrayList<>();
+        gameModeNames.add("Standard"); // Mode standard
+        gameModeNames.add("Contre la montre"); // Mode timed
+        gameModeNames.add("Réponses changeantes"); // Mode shuffle_options
+        
+        // Créer un adapter pour le spinner
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                gameModeNames
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerGameMode.setAdapter(adapter);
     }
     
     private void loadQuizDetails() {
@@ -149,6 +176,32 @@ public class QuizDetailsFragment extends Fragment {
         if (questionCount == 0) {
             buttonStartQuiz.setText("Aucune question disponible");
         }
+        
+        // Sélectionner le mode de jeu approprié dans le spinner
+        Quiz.GameMode gameMode = quiz.getGameMode();
+        if (gameMode != null) {
+            int position = getGameModePosition(gameMode);
+            spinnerGameMode.setSelection(position);
+        }
+    }
+    
+    private int getGameModePosition(Quiz.GameMode gameMode) {
+        switch (gameMode) {
+            case STANDARD: return 0;
+            case TIMED: return 1;
+            case SHUFFLE_OPTIONS: return 2;
+            default: return 0;
+        }
+    }
+    
+    private Quiz.GameMode getSelectedGameMode() {
+        int position = spinnerGameMode.getSelectedItemPosition();
+        switch (position) {
+            case 0: return Quiz.GameMode.STANDARD;
+            case 1: return Quiz.GameMode.TIMED;
+            case 2: return Quiz.GameMode.SHUFFLE_OPTIONS;
+            default: return Quiz.GameMode.STANDARD;
+        }
     }
     
     private void startQuiz() {
@@ -157,6 +210,11 @@ public class QuizDetailsFragment extends Fragment {
             NavController navController = Navigation.findNavController(requireView());
             Bundle args = new Bundle();
             args.putString("quizId", quizId);
+            
+            // Ajouter le mode de jeu sélectionné aux arguments
+            Quiz.GameMode selectedMode = getSelectedGameMode();
+            args.putString("gameMode", selectedMode.name());
+            
             navController.navigate(R.id.action_quiz_details_to_play_quiz, args);
         } catch (Exception e) {
             Log.e(TAG, "Erreur lors de la navigation vers le quiz", e);
