@@ -42,6 +42,7 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment:2.8.9")
     implementation("androidx.navigation:navigation-ui:2.8.9")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
     
     // Firebase - avec des versions récentes et sécurisées
     implementation(platform("com.google.firebase:firebase-bom:33.11.0"))

@@ -2,8 +2,31 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Quiz" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryVariant">@color/purple_500</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/purple_500</item>
+        <item name="colorSecondaryVariant">@color/purple_500</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorAccent">@color/purple_500</item>
+        <item name="bottomNavigationStyle">@style/BottomNavigationViewStyle</item>
     </style>
 
-    <style name="Theme.Quiz" parent="Base.Theme.Quiz"/>
+    <style name="Theme.Quiz" parent="Base.Theme.Quiz" />
+
+    <!-- Style personnalisé pour le menu de navigation du bas -->
+    <style name="BottomNavigationViewStyle" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:minHeight">64dp</item>
+        <item name="itemIconSize">26dp</item>
+        <item name="labelVisibilityMode">labeled</item>
+        <item name="itemPaddingTop">5dp</item>
+        <item name="itemPaddingBottom">5dp</item>
+        <item name="itemTextAppearanceActive">@style/BottomNavigationViewText</item>
+        <item name="itemTextAppearanceInactive">@style/BottomNavigationViewText</item>
+    </style>
+
+    <style name="BottomNavigationViewText" parent="TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
 </resources>

@@ -6,7 +6,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -17,6 +16,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.quiz.R;
 import com.example.quiz.adapter.CategoryAdapter;
@@ -44,6 +44,7 @@ public class HomeFragment extends Fragment {
     private RecyclerView recyclerViewPopular;
     private RecyclerView recyclerViewRecent;
     private ProgressBar progressBar;
+    private SwipeRefreshLayout swipeRefreshLayout;
     
     private QuizAdapter popularAdapter;
     private QuizAdapter recentAdapter;
@@ -76,14 +77,10 @@ public class HomeFragment extends Fragment {
         // Configurer les RecyclerViews
         initViews(view);
         
-        // Configurer le bouton pour actualiser les quiz
-        Button refreshButton = view.findViewById(R.id.buttonRefreshQuizzes);
-        if (refreshButton != null) {
-            refreshButton.setOnClickListener(v -> {
-                refreshData();
-                Toast.makeText(getContext(), "Quiz actualisés", Toast.LENGTH_SHORT).show();
-            });
-        }
+        // Configurer le SwipeRefreshLayout
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        swipeRefreshLayout.setColorSchemeResources(R.color.purple_500, R.color.teal_200);
+        swipeRefreshLayout.setOnRefreshListener(this::refreshData);
         
         // Charger les données
         loadData();
@@ -197,19 +194,34 @@ public class HomeFragment extends Fragment {
                     createDemoQuiz();
                 }
                 
+                // Cacher les indicateurs de chargement
                 progressBar.setVisibility(View.GONE);
+                
+                // Arrêter l'animation de rafraîchissement si elle est active
+                if (swipeRefreshLayout != null && swipeRefreshLayout.isRefreshing()) {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
             }
             
             @Override
             public void onError(Exception e) {
                 Log.e(TAG, "Erreur lors du chargement des quizzes: " + e.getMessage(), e);
                 Toast.makeText(getContext(), "Erreur lors du chargement des quizzes: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                
+                // Cacher les indicateurs de chargement
                 progressBar.setVisibility(View.GONE);
+                
+                // Arrêter l'animation de rafraîchissement si elle est active
+                if (swipeRefreshLayout != null && swipeRefreshLayout.isRefreshing()) {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
             }
         });
     }
     
     private void refreshData() {
+        // Cette méthode est maintenant appelée par le SwipeRefreshLayout
+        Toast.makeText(getContext(), "Actualisation des quiz...", Toast.LENGTH_SHORT).show();
         loadData();
     }
     
