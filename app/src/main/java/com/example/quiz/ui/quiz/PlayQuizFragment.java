@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -46,6 +47,10 @@ public class PlayQuizFragment extends Fragment {
     private Button buttonValidate;
     private Button buttonNext;
     
+    // Loading UI components
+    private ConstraintLayout loadingContainer;
+    private ConstraintLayout quizContentContainer;
+    
     private boolean questionAnswered = false;
 
     @Override
@@ -75,15 +80,24 @@ public class PlayQuizFragment extends Fragment {
         // Observer les changements dans le ViewModel
         setupObservers();
         
+        // Afficher le chargement
+        showLoading(true);
+        
         // Charger le quiz
         if (quizId != null && !quizId.isEmpty()) {
             viewModel.loadQuiz(quizId);
         } else {
             Toast.makeText(getContext(), "ID de quiz invalide", Toast.LENGTH_SHORT).show();
+            showLoading(false);
         }
     }
     
     private void initViews(View view) {
+        // Loading UI
+        loadingContainer = view.findViewById(R.id.loadingContainer);
+        quizContentContainer = view.findViewById(R.id.quizContentContainer);
+        
+        // Quiz content UI
         textQuizTitle = view.findViewById(R.id.textQuizTitle);
         progressBar = view.findViewById(R.id.progressBar);
         textProgress = view.findViewById(R.id.textProgress);
@@ -121,17 +135,14 @@ public class PlayQuizFragment extends Fragment {
     private void setupObservers() {
         // Observer le chargement
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            if (isLoading) {
-                progressBar.setVisibility(View.VISIBLE);
-            } else {
-                progressBar.setVisibility(View.VISIBLE); // Garder visible pour montrer la progression
-            }
+            showLoading(isLoading);
         });
         
         // Observer les erreurs
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), errorMessage -> {
             if (errorMessage != null && !errorMessage.isEmpty()) {
                 Toast.makeText(getContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                showLoading(false);
             }
         });
         
@@ -146,6 +157,7 @@ public class PlayQuizFragment extends Fragment {
         viewModel.getQuestions().observe(getViewLifecycleOwner(), questions -> {
             if (questions != null && !questions.isEmpty()) {
                 progressBar.setMax(questions.size());
+                showLoading(false);
             }
         });
         
@@ -162,6 +174,16 @@ public class PlayQuizFragment extends Fragment {
                 textScore.setText(String.format("Score: %d", score));
             }
         });
+    }
+    
+    private void showLoading(boolean isLoading) {
+        if (isLoading) {
+            loadingContainer.setVisibility(View.VISIBLE);
+            quizContentContainer.setVisibility(View.GONE);
+        } else {
+            loadingContainer.setVisibility(View.GONE);
+            quizContentContainer.setVisibility(View.VISIBLE);
+        }
     }
     
     private void displayCurrentQuestion(int index) {
@@ -181,6 +203,7 @@ public class PlayQuizFragment extends Fragment {
         // Réinitialiser le background de toutes les options
         for (RadioButton option : radioOptions) {
             option.setBackgroundResource(R.drawable.option_background);
+            option.setEnabled(true);  // Réactiver les options pour la nouvelle question
         }
         
         // Obtenir la question courante
@@ -250,6 +273,11 @@ public class PlayQuizFragment extends Fragment {
             if (currentQuestion.getCorrectAnswerIndex() >= 0 && currentQuestion.getCorrectAnswerIndex() < radioOptions.length) {
                 radioOptions[currentQuestion.getCorrectAnswerIndex()].setBackgroundResource(R.drawable.option_correct_background);
             }
+        }
+        
+        // Désactiver toutes les options pour empêcher de changer de réponse
+        for (RadioButton option : radioOptions) {
+            option.setEnabled(false);
         }
         
         // Afficher l'explication
