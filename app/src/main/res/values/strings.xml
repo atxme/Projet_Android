@@ -9,10 +9,11 @@
 
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
-    
+
     <!-- Firebase -->
-    <string name="default_web_client_id" translatable="false">976358408220-5h2md8tr10q1s2l8h44olefod1llabgo.apps.googleusercontent.com</string>
-    
+    <string name="default_web_client_id" translatable="false">
+        976358408220-5h2md8tr10q1s2l8h44olefod1llabgo.apps.googleusercontent.com</string>
+
     <!-- Quiz App Strings -->
     <string name="quiz_image_description">Image du quiz</string>
     <string name="recent_quizzes">Quizzes récents</string>
@@ -75,7 +76,8 @@
     <string name="played_quizzes">Quizzes joués</string>
     <string name="achievements">Réalisations</string>
     <string name="delete_account">Supprimer le compte</string>
-    <string name="confirm_delete_account">Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.</string>
+    <string name="confirm_delete_account">Êtes-vous sûr de vouloir supprimer votre compte ? Cette
+        action est irréversible.</string>
     <string name="easy">Facile</string>
     <string name="medium">Moyen</string>
     <string name="hard">Difficile</string>
@@ -83,7 +85,8 @@
     <string name="network_error">Erreur de réseau</string>
     <string name="retry">Réessayer</string>
     <string name="download_progress">Téléchargement : %1$d%%</string>
-    
+    <string name="question_count">Questions: %d</string>
+
     <!-- Catégories de quiz -->
     <string-array name="quiz_categories">
         <item>Science</item>
@@ -98,7 +101,7 @@
         <item>Jeux vidéo</item>
         <item>Autre</item>
     </string-array>
-    
+
     <!-- Modes de jeu -->
     <string-array name="game_modes">
         <item>Quiz standard</item>
@@ -114,7 +117,7 @@
         <item>Piège</item>
         <item>Mémoire</item>
     </string-array>
-    
+
     <!-- Niveaux de difficulté -->
     <string-array name="difficulty_levels">
         <item>Très facile</item>

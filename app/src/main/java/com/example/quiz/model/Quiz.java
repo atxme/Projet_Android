@@ -10,6 +10,7 @@ public class Quiz {
     public enum GameMode {
         STANDARD,         // Quiz standard avec points fixes
         TIMED,            // Contre la montre
+        SHUFFLE_OPTIONS,  // Les réponses changent d'ordre toutes les 2 secondes
         FASTEST,          // Le plus rapide gagne
         TOP_THREE,        // Les 3 meilleurs sur 4 gagnent des points
         REGRESSIVE,       // Points décroissants selon l'ordre de réponse

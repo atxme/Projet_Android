@@ -24,16 +24,20 @@ import androidx.navigation.Navigation;
 import com.example.quiz.R;
 import com.example.quiz.model.Question;
 import com.example.quiz.model.Quiz;
+import com.example.quiz.util.GameModeManager;
 import com.example.quiz.util.MediaUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
-public class PlayQuizFragment extends Fragment {
+public class PlayQuizFragment extends Fragment implements GameModeManager.GameModeListener {
     private static final String TAG = "PlayQuizFragment";
     
     private String quizId;
     private QuizViewModel viewModel;
+    private GameModeManager gameModeManager;
     
     private TextView textQuizTitle;
     private ProgressBar progressBar;
@@ -46,12 +50,15 @@ public class PlayQuizFragment extends Fragment {
     private TextView textExplanation;
     private Button buttonValidate;
     private Button buttonNext;
+    private TextView textTimer;
+    private TextView textGameMode;
     
     // Loading UI components
     private ConstraintLayout loadingContainer;
     private ConstraintLayout quizContentContainer;
     
     private boolean questionAnswered = false;
+    private int timeRemaining = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -65,6 +72,9 @@ public class PlayQuizFragment extends Fragment {
         
         // Initialiser le ViewModel
         viewModel = new ViewModelProvider(this).get(QuizViewModel.class);
+        
+        // Initialiser le GameModeManager
+        gameModeManager = new GameModeManager(this);
         
         // Récupérer l'ID du quiz passé en argument
         if (getArguments() != null) {
@@ -112,9 +122,14 @@ public class PlayQuizFragment extends Fragment {
         textExplanation = view.findViewById(R.id.textExplanation);
         buttonValidate = view.findViewById(R.id.buttonValidate);
         buttonNext = view.findViewById(R.id.buttonNext);
+        textTimer = view.findViewById(R.id.textTimer);
+        textGameMode = view.findViewById(R.id.textGameMode);
         
         // Cacher le bouton suivant au début
         buttonNext.setVisibility(View.GONE);
+        
+        // Cacher le timer par défaut
+        textTimer.setVisibility(View.GONE);
     }
     
     private void setupListeners() {
@@ -150,6 +165,18 @@ public class PlayQuizFragment extends Fragment {
         viewModel.getCurrentQuiz().observe(getViewLifecycleOwner(), quiz -> {
             if (quiz != null) {
                 textQuizTitle.setText(quiz.getTitle());
+                
+                // Initialiser le mode de jeu
+                Quiz.GameMode gameMode = quiz.getGameMode();
+                if (gameMode == null) {
+                    gameMode = Quiz.GameMode.STANDARD; // Mode par défaut
+                }
+                
+                // Afficher le mode de jeu
+                updateGameModeDisplay(gameMode);
+                
+                // Initialiser le GameModeManager avec le mode de jeu du quiz
+                gameModeManager.initializeGameMode(gameMode, quiz.getTimeLimit());
             }
         });
         
@@ -174,6 +201,37 @@ public class PlayQuizFragment extends Fragment {
                 textScore.setText(String.format("Score: %d", score));
             }
         });
+        
+        // Observer le temps restant
+        viewModel.getTimeRemaining().observe(getViewLifecycleOwner(), time -> {
+            if (time != null) {
+                this.timeRemaining = time;
+                if (gameModeManager.getCurrentGameMode() == Quiz.GameMode.TIMED) {
+                    textTimer.setVisibility(View.VISIBLE);
+                    textTimer.setText(String.format("Temps: %d s", time));
+                }
+            }
+        });
+    }
+    
+    private void updateGameModeDisplay(Quiz.GameMode gameMode) {
+        if (textGameMode != null) {
+            String modeName;
+            switch (gameMode) {
+                case TIMED:
+                    modeName = "Mode: Contre la montre";
+                    break;
+                case SHUFFLE_OPTIONS:
+                    modeName = "Mode: Réponses changeantes";
+                    break;
+                case STANDARD:
+                default:
+                    modeName = "Mode: Standard";
+                    break;
+            }
+            textGameMode.setText(modeName);
+            textGameMode.setVisibility(View.VISIBLE);
+        }
     }
     
     private void showLoading(boolean isLoading) {
@@ -236,6 +294,13 @@ public class PlayQuizFragment extends Fragment {
                 }
             }
         }
+        
+        // Réinitialiser le timer si nécessaire
+        Quiz currentQuiz = viewModel.getCurrentQuiz().getValue();
+        if (currentQuiz != null && currentQuiz.getGameMode() == Quiz.GameMode.TIMED) {
+            gameModeManager.stopTimer();
+            gameModeManager.initializeGameMode(Quiz.GameMode.TIMED, currentQuiz.getTimeLimit());
+        }
     }
     
     private void validateAnswer() {
@@ -260,14 +325,21 @@ public class PlayQuizFragment extends Fragment {
             }
         }
         
+        // Arrêter le timer et le shuffling pour cette question
+        gameModeManager.stopTimer();
+        gameModeManager.stopShuffling();
+        
         // Valider la réponse
         boolean isCorrect = (selectedOptionIndex == currentQuestion.getCorrectAnswerIndex());
         questionAnswered = true;
         
+        // Calculer les points en fonction du mode de jeu
+        int points = calculatePoints(isCorrect);
+        
         // Mettre à jour l'interface
         if (isCorrect) {
             radioOptions[selectedOptionIndex].setBackgroundResource(R.drawable.option_correct_background);
-            viewModel.updateScore(10); // 10 points par bonne réponse
+            viewModel.updateScore(points); 
         } else {
             radioOptions[selectedOptionIndex].setBackgroundResource(R.drawable.option_incorrect_background);
             if (currentQuestion.getCorrectAnswerIndex() >= 0 && currentQuestion.getCorrectAnswerIndex() < radioOptions.length) {
@@ -297,7 +369,34 @@ public class PlayQuizFragment extends Fragment {
         buttonNext.setVisibility(View.VISIBLE);
     }
     
+    /**
+     * Calcule les points en fonction du mode de jeu actuel
+     */
+    private int calculatePoints(boolean isCorrect) {
+        if (!isCorrect) return 0;
+        
+        Quiz currentQuiz = viewModel.getCurrentQuiz().getValue();
+        if (currentQuiz == null) return 10; // Valeur par défaut
+        
+        Quiz.GameMode gameMode = currentQuiz.getGameMode();
+        if (gameMode == null) gameMode = Quiz.GameMode.STANDARD;
+        
+        switch (gameMode) {
+            case TIMED:
+                // Points variables en fonction du temps restant
+                return 10 + timeRemaining;
+            case SHUFFLE_OPTIONS:
+                // Points fixes pour le mode shuffle
+                return 15;
+            case STANDARD:
+            default:
+                // Points standards
+                return 10;
+        }
+    }
+    
     private void showResults() {
+        gameModeManager.cleanup();
         viewModel.finishQuiz();
         
         // Créer un bundle avec les résultats pour le fragment de résultats
@@ -314,5 +413,88 @@ public class PlayQuizFragment extends Fragment {
             Log.e(TAG, "Erreur lors de la navigation vers les résultats", e);
             Toast.makeText(getContext(), "Erreur: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+    
+    @Override
+    public void onTimeUpdated(int secondsRemaining) {
+        if (isAdded() && getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                viewModel.updateTimeRemaining(secondsRemaining);
+            });
+        }
+    }
+    
+    @Override
+    public void onTimeUp() {
+        if (isAdded() && getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                if (!questionAnswered) {
+                    Toast.makeText(getContext(), "Temps écoulé !", Toast.LENGTH_SHORT).show();
+                    validateAnswer();
+                }
+            });
+        }
+    }
+    
+    @Override
+    public void onAnswerShuffled() {
+        if (isAdded() && getActivity() != null && !questionAnswered) {
+            getActivity().runOnUiThread(() -> {
+                Question currentQuestion = viewModel.getCurrentQuestion();
+                if (currentQuestion == null) return;
+                
+                // Obtenir les options actuelles et la réponse correcte
+                List<String> options = new ArrayList<>(currentQuestion.getOptions());
+                int correctIndex = currentQuestion.getCorrectAnswerIndex();
+                String correctOption = options.get(correctIndex);
+                
+                // Mélanger les options
+                Collections.shuffle(options);
+                
+                // Mettre à jour les RadioButtons
+                for (int i = 0; i < radioOptions.length; i++) {
+                    if (i < options.size()) {
+                        radioOptions[i].setText(options.get(i));
+                        
+                        // Mettre à jour l'index de la réponse correcte
+                        if (options.get(i).equals(correctOption)) {
+                            currentQuestion.setCorrectAnswerIndex(i);
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    @Override
+    public void setAnswerEnabled(boolean enabled) {
+        if (isAdded() && getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                for (RadioButton option : radioOptions) {
+                    option.setEnabled(enabled);
+                }
+                buttonValidate.setEnabled(enabled);
+            });
+        }
+    }
+    
+    @Override
+    public void onPause() {
+        super.onPause();
+        gameModeManager.pauseGameMode();
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!questionAnswered) {
+            gameModeManager.resumeGameMode(timeRemaining);
+        }
+    }
+    
+    @Override
+    public void onDestroy() {
+        gameModeManager.cleanup();
+        super.onDestroy();
     }
 } 

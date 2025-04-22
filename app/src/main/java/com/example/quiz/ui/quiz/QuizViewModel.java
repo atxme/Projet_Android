@@ -108,6 +108,9 @@ public class QuizViewModel extends ViewModel {
                 // Configurer le timer si nécessaire
                 if (quiz.getTimeLimit() > 0) {
                     timeRemaining.setValue(quiz.getTimeLimit());
+                } else if (quiz.getGameMode() == Quiz.GameMode.TIMED) {
+                    // Valeur par défaut pour le mode contre la montre
+                    timeRemaining.setValue(60);
                 }
             }
             

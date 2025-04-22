@@ -379,22 +379,70 @@ public class FirestoreUtils {
     }
     
     /**
-     * Supprime une question de Firestore
+     * Supprime une question dans Firestore et la retire du quiz associé.
      */
-    public static void deleteQuestion(String questionId, OnOperationCompleteListener listener) {
+    public static void deleteQuestion(String questionId, String quizId, OnOperationCompleteListener listener) {
         if (questionId == null || questionId.isEmpty()) {
-            listener.onError(new IllegalArgumentException("L'ID de la question ne peut pas être vide"));
+            if (listener != null) {
+                listener.onError(new IllegalArgumentException("ID de question invalide"));
+            }
             return;
         }
-        
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("questions")
-            .document(questionId)
+        
+        // Étape 1 : D'abord retirer la question du quiz
+        if (quizId != null && !quizId.isEmpty()) {
+            db.collection("quizzes").document(quizId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    Quiz quiz = Quiz.fromMap(documentSnapshot.getData(), documentSnapshot.getId());
+                    
+                    // Retirer l'ID de la question de la liste
+                    if (quiz.getQuestionIds().contains(questionId)) {
+                        quiz.removeQuestion(questionId);
+                        
+                        // Mise à jour du quiz
+                        db.collection("quizzes").document(quizId)
+                            .update("questionIds", quiz.getQuestionIds())
+                            .addOnSuccessListener(aVoid -> {
+                                // Étape 2 : Supprimer la question
+                                deleteQuestionDocument(questionId, listener);
+                            })
+                            .addOnFailureListener(e -> {
+                                if (listener != null) {
+                                    listener.onError(e);
+                                }
+                            });
+                    } else {
+                        // La question n'est pas dans ce quiz, on la supprime directement
+                        deleteQuestionDocument(questionId, listener);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (listener != null) {
+                        listener.onError(e);
+                    }
+                });
+        } else {
+            // Pas de quiz spécifié, supprimer juste la question
+            deleteQuestionDocument(questionId, listener);
+        }
+    }
+    
+    private static void deleteQuestionDocument(String questionId, OnOperationCompleteListener listener) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("questions").document(questionId)
             .delete()
-            .addOnSuccessListener(aVoid -> listener.onSuccess())
+            .addOnSuccessListener(aVoid -> {
+                if (listener != null) {
+                    listener.onSuccess();
+                }
+            })
             .addOnFailureListener(e -> {
-                Log.e(TAG, "Erreur lors de la suppression de la question " + questionId, e);
-                listener.onError(e);
+                if (listener != null) {
+                    listener.onError(e);
+                }
             });
     }
     
