@@ -162,6 +162,15 @@
                     android:scaleType="fitCenter"
                     android:visibility="gone" />
 
+                <!-- YouTube Player pour les vidéos (si présentes) -->
+                <com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+                    android:id="@+id/youtubePlayer"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    app:autoPlay="false" />
+
                 <!-- Container pour les options -->
                 <RadioGroup
                     android:id="@+id/radioGroupOptions"

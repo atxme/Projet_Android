@@ -44,6 +44,9 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
     
+    // YouTube Player API
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
+    
     // Firebase - avec des versions récentes et sécurisées
     implementation(platform("com.google.firebase:firebase-bom:33.11.0"))
     implementation("com.google.firebase:firebase-analytics")

@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelStore;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
@@ -27,11 +28,16 @@ import com.example.quiz.model.Question;
 import com.example.quiz.model.Quiz;
 import com.example.quiz.util.GameModeManager;
 import com.example.quiz.util.MediaUtils;
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer;
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener;
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PlayQuizFragment extends Fragment implements GameModeManager.GameModeListener {
     private static final String TAG = "PlayQuizFragment";
@@ -46,6 +52,7 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
     private TextView textScore;
     private TextView textQuestionPrompt;
     private ImageView imageQuestion;
+    private YouTubePlayerView youtubePlayerView;
     private RadioGroup radioGroupOptions;
     private RadioButton[] radioOptions = new RadioButton[4];
     private TextView textExplanation;
@@ -60,6 +67,7 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
     
     private boolean questionAnswered = false;
     private int timeRemaining = 0;
+    private YouTubePlayer youTubePlayer;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -124,6 +132,7 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         textScore = view.findViewById(R.id.textScore);
         textQuestionPrompt = view.findViewById(R.id.textQuestionPrompt);
         imageQuestion = view.findViewById(R.id.imageQuestion);
+        youtubePlayerView = view.findViewById(R.id.youtubePlayer);
         radioGroupOptions = view.findViewById(R.id.radioGroupOptions);
         radioOptions[0] = view.findViewById(R.id.radioOption1);
         radioOptions[1] = view.findViewById(R.id.radioOption2);
@@ -134,6 +143,9 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         buttonNext = view.findViewById(R.id.buttonNext);
         textTimer = view.findViewById(R.id.textTimer);
         textGameMode = view.findViewById(R.id.textGameMode);
+        
+        // Initialiser le YouTubePlayerView et le gérer dans le cycle de vie du fragment
+        getLifecycle().addObserver(youtubePlayerView);
         
         // Cacher le bouton suivant au début
         buttonNext.setVisibility(View.GONE);
@@ -276,6 +288,7 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         buttonValidate.setVisibility(View.VISIBLE);
         buttonNext.setVisibility(View.GONE);
         radioGroupOptions.clearCheck();
+        youtubePlayerView.setVisibility(View.GONE);
         
         // Réinitialiser le background de toutes les options
         for (RadioButton option : radioOptions) {
@@ -293,12 +306,36 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         // Afficher le texte de la question
         textQuestionPrompt.setText(question.getText());
         
-        // Gérer l'image de la question si présente
-        if (question.getImageUrl() != null && !question.getImageUrl().isEmpty()) {
+        // Gérer le média de la question (image ou vidéo)
+        if (question.getVideoUrl() != null && !question.getVideoUrl().isEmpty()) {
+            // Cacher l'image et montrer le lecteur YouTube
+            imageQuestion.setVisibility(View.GONE);
+            youtubePlayerView.setVisibility(View.VISIBLE);
+            
+            // Extraire l'ID de la vidéo YouTube de l'URL
+            String videoId = extractYouTubeId(question.getVideoUrl());
+            if (videoId != null) {
+                // Initialiser le lecteur YouTube avec l'ID de la vidéo
+                youtubePlayerView.addYouTubePlayerListener(new AbstractYouTubePlayerListener() {
+                    @Override
+                    public void onReady(@NonNull YouTubePlayer player) {
+                        youTubePlayer = player;
+                        player.cueVideo(videoId, 0);
+                    }
+                });
+            } else {
+                // En cas d'erreur d'URL, cacher le lecteur
+                youtubePlayerView.setVisibility(View.GONE);
+            }
+        } else if (question.getImageUrl() != null && !question.getImageUrl().isEmpty()) {
+            // Montrer l'image et cacher le lecteur YouTube
             imageQuestion.setVisibility(View.VISIBLE);
+            youtubePlayerView.setVisibility(View.GONE);
             MediaUtils.loadImage(getContext(), question.getImageUrl(), imageQuestion);
         } else {
+            // Pas de média, cacher les deux
             imageQuestion.setVisibility(View.GONE);
+            youtubePlayerView.setVisibility(View.GONE);
         }
         
         // Afficher les options
@@ -336,6 +373,41 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
                 }
             }, 100); // court délai pour assurer le redémarrage propre
         }
+    }
+    
+    /**
+     * Extrait l'ID de la vidéo à partir d'une URL YouTube
+     * @param youtubeUrl L'URL YouTube complète
+     * @return L'ID de la vidéo, ou null si non trouvé
+     */
+    private String extractYouTubeId(String youtubeUrl) {
+        if (youtubeUrl == null || youtubeUrl.isEmpty()) {
+            return null;
+        }
+        
+        // Patterns pour différents formats d'URL YouTube
+        String[] patterns = {
+            "youtu\\.be/([a-zA-Z0-9_-]{11})",              // youtu.be/<id>
+            "youtube\\.com/watch\\?v=([a-zA-Z0-9_-]{11})", // youtube.com/watch?v=<id>
+            "youtube\\.com/embed/([a-zA-Z0-9_-]{11})",     // youtube.com/embed/<id>
+            "youtube\\.com/v/([a-zA-Z0-9_-]{11})"          // youtube.com/v/<id>
+        };
+        
+        // Chercher les patterns
+        for (String pattern : patterns) {
+            Pattern compiledPattern = Pattern.compile(pattern);
+            Matcher matcher = compiledPattern.matcher(youtubeUrl);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        }
+        
+        // Si l'URL est déjà un ID YouTube (11 caractères)
+        if (youtubeUrl.matches("[a-zA-Z0-9_-]{11}")) {
+            return youtubeUrl;
+        }
+        
+        return null;
     }
     
     private void validateAnswer() {
@@ -576,7 +648,12 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
     
     @Override
     public void onDestroy() {
-        gameModeManager.cleanup();
         super.onDestroy();
+        gameModeManager.cleanup();
+        
+        // Libérer les ressources du YouTubePlayerView
+        if (youtubePlayerView != null) {
+            youtubePlayerView.release();
+        }
     }
 } 
