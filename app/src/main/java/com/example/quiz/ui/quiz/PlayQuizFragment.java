@@ -345,6 +345,8 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
             if (currentQuestion.getCorrectAnswerIndex() >= 0 && currentQuestion.getCorrectAnswerIndex() < radioOptions.length) {
                 radioOptions[currentQuestion.getCorrectAnswerIndex()].setBackgroundResource(R.drawable.option_correct_background);
             }
+            // Mettre à jour le score avec 0 points pour enregistrer la réponse incorrecte
+            viewModel.updateScore(0);
         }
         
         // Désactiver toutes les options pour empêcher de changer de réponse

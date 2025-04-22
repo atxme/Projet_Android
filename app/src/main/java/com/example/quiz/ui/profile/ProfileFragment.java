@@ -1,6 +1,7 @@
 package com.example.quiz.ui.profile;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,13 +20,18 @@ import com.bumptech.glide.Glide;
 import com.example.quiz.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class ProfileFragment extends Fragment {
 
+    private static final String TAG = "ProfileFragment";
     private ImageView userProfileImage;
     private TextView userName, userEmail, userId;
+    private TextView gamesPlayed, questionsAnswered, correctAnswers;
     private Button logoutButton;
     private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -37,14 +43,18 @@ public class ProfileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        // Initialize Firebase Auth
+        // Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
         
         // Initialize views
         userProfileImage = view.findViewById(R.id.user_profile_image);
         userName = view.findViewById(R.id.user_name);
         userEmail = view.findViewById(R.id.user_email);
         userId = view.findViewById(R.id.user_id);
+        gamesPlayed = view.findViewById(R.id.games_played);
+        questionsAnswered = view.findViewById(R.id.questions_answered);
+        correctAnswers = view.findViewById(R.id.correct_answers);
         logoutButton = view.findViewById(R.id.logout_button);
         
         // Display user information
@@ -85,12 +95,58 @@ public class ProfileFragment extends Fragment {
                     .placeholder(R.drawable.ic_profile)
                     .into(userProfileImage);
             }
+            
+            // Load user statistics from Firestore
+            loadUserStatistics(user.getUid());
         } else {
             // User is not logged in
             userName.setText("Invité");
             userEmail.setText("Non connecté");
             userId.setText("");
+            gamesPlayed.setText("Parties jouées: 0");
+            questionsAnswered.setText("Questions répondues: 0");
+            correctAnswers.setText("Bonnes réponses: 0");
         }
+    }
+    
+    private void loadUserStatistics(String userId) {
+        db.collection("users").document(userId)
+            .get()
+            .addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    // Récupérer les statistiques avec des valeurs par défaut si non définies
+                    long gamesCount = documentSnapshot.getLong("gamesPlayed") != null ? 
+                            documentSnapshot.getLong("gamesPlayed") : 0;
+                    long questionsCount = documentSnapshot.getLong("questionsAnswered") != null ? 
+                            documentSnapshot.getLong("questionsAnswered") : 0;
+                    long correctCount = documentSnapshot.getLong("correctAnswers") != null ? 
+                            documentSnapshot.getLong("correctAnswers") : 0;
+                    
+                    // Afficher les statistiques
+                    gamesPlayed.setText("Parties jouées: " + gamesCount);
+                    questionsAnswered.setText("Questions répondues: " + questionsCount);
+                    correctAnswers.setText("Bonnes réponses: " + correctCount);
+                    
+                    // Calculer le pourcentage de bonnes réponses si possible
+                    if (questionsCount > 0) {
+                        double correctPercentage = (double) correctCount / questionsCount * 100;
+                        correctAnswers.setText(String.format("Bonnes réponses: %d (%.1f%%)", 
+                                correctCount, correctPercentage));
+                    }
+                } else {
+                    // Le document utilisateur n'existe pas
+                    Log.d(TAG, "Aucun document utilisateur trouvé pour l'ID: " + userId);
+                    gamesPlayed.setText("Parties jouées: 0");
+                    questionsAnswered.setText("Questions répondues: 0");
+                    correctAnswers.setText("Bonnes réponses: 0");
+                }
+            })
+            .addOnFailureListener(e -> {
+                Log.w(TAG, "Erreur lors du chargement des statistiques utilisateur", e);
+                gamesPlayed.setText("Parties jouées: --");
+                questionsAnswered.setText("Questions répondues: --");
+                correctAnswers.setText("Bonnes réponses: --");
+            });
     }
     
     private void logout() {

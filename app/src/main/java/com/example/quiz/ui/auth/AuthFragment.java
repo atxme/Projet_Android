@@ -147,6 +147,11 @@ public class AuthFragment extends Fragment {
         userProfile.put("photoUrl", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null);
         userProfile.put("createdAt", System.currentTimeMillis());
         
+        // Initialiser les statistiques utilisateur
+        userProfile.put("gamesPlayed", 0);
+        userProfile.put("questionsAnswered", 0);
+        userProfile.put("correctAnswers", 0);
+        
         db.collection("users").document(user.getUid())
                 .set(userProfile)
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "User profile created or updated"))

@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel;
 import com.example.quiz.model.Question;
 import com.example.quiz.model.Quiz;
 import com.example.quiz.util.FirestoreUtils;
+import com.example.quiz.util.StatsUtils;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -29,6 +30,10 @@ public class QuizViewModel extends ViewModel {
     
     // ID du quiz en cours
     private String quizId;
+    
+    // Compteurs pour les statistiques
+    private int correctAnswers = 0;
+    private int totalAnswers = 0;
     
     // Getters pour les LiveData
     public LiveData<List<Question>> getQuestions() {
@@ -105,6 +110,10 @@ public class QuizViewModel extends ViewModel {
                 // Réinitialiser le score
                 score.setValue(0);
                 
+                // Réinitialiser les compteurs de statistiques
+                correctAnswers = 0;
+                totalAnswers = 0;
+                
                 // Configurer le timer si nécessaire
                 if (quiz.getTimeLimit() > 0) {
                     timeRemaining.setValue(quiz.getTimeLimit());
@@ -154,9 +163,20 @@ public class QuizViewModel extends ViewModel {
         return null;
     }
     
-    // Méthode pour mettre à jour le score
+    // Méthode pour mettre à jour le score et enregistrer la réponse
     public void updateScore(int points) {
         Integer currentScore = score.getValue();
+        
+        // Incrémenter le compteur total de réponses
+        totalAnswers++;
+        
+        // Si des points ont été gagnés, c'est une bonne réponse
+        if (points > 0) {
+            correctAnswers++;
+            StatsUtils.incrementQuestionStats(true);
+        } else {
+            StatsUtils.incrementQuestionStats(false);
+        }
         
         if (currentScore != null) {
             score.setValue(currentScore + points);
@@ -175,13 +195,16 @@ public class QuizViewModel extends ViewModel {
             FirestoreUtils.incrementQuizPlayCount(quizId);
         }
         
+        // Incrémenter le compteur de parties jouées pour l'utilisateur
+        StatsUtils.incrementGamesPlayed();
+        
         // Sauvegarder le score dans l'historique si l'utilisateur est connecté
         Integer finalScore = score.getValue();
         Quiz quiz = currentQuiz.getValue();
         
         if (finalScore != null && quiz != null) {
-            // Logique de sauvegarde du score (à implémenter)
-            // Exemple: sauvegarder dans les préférences utilisateur ou dans Firestore
+            Log.d(TAG, "Quiz terminé avec score: " + finalScore + 
+                  ", réponses correctes: " + correctAnswers + "/" + totalAnswers);
         }
     }
 } 
