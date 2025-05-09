@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,6 +35,7 @@ public class ProfileFragment extends Fragment {
     private ImageView userProfileImage;
     private TextView userName, userEmail, userId, joinDate;
     private TextView gamesPlayed, questionsAnswered, correctAnswers, userLevel;
+    private ProgressBar progressBar;
     private Button logoutButton;
     private FirebaseAuth mAuth;
     private UserStatsManager statsManager;
@@ -62,6 +64,7 @@ public class ProfileFragment extends Fragment {
         questionsAnswered = view.findViewById(R.id.questions_answered);
         correctAnswers = view.findViewById(R.id.correct_answers);
         userLevel = view.findViewById(R.id.user_level);
+        progressBar = view.findViewById(R.id.progress_bar);
         logoutButton = view.findViewById(R.id.logout_button);
         
         // Display user information
@@ -125,6 +128,7 @@ public class ProfileFragment extends Fragment {
             questionsAnswered.setText("Questions répondues: 0");
             correctAnswers.setText("Bonnes réponses: 0");
             userLevel.setText("Niveau: -");
+            progressBar.setProgress(0);
         }
     }
     
@@ -144,11 +148,15 @@ public class ProfileFragment extends Fragment {
                         correctAnswers.setText(String.format("Bonnes réponses: %d (%.1f%%)", 
                                 correctCount, correctPercentage));
                         
+                        // Mettre à jour la barre de progression
+                        progressBar.setProgress((int) correctPercentage);
+                        
                         // Définir le niveau utilisateur en fonction des statistiques
                         determineUserLevel(gamesCount, questionsCount, correctPercentage);
                     } else {
                         correctAnswers.setText("Bonnes réponses: 0");
                         userLevel.setText("Niveau: Débutant");
+                        progressBar.setProgress(0);
                     }
                 }
             }
@@ -158,15 +166,15 @@ public class ProfileFragment extends Fragment {
     private void determineUserLevel(long gamesCount, long questionsCount, double correctPercentage) {
         // Déterminer le niveau en fonction des statistiques
         if (gamesCount > 50 && correctPercentage >= 80) {
-            userLevel.setText("Niveau: Expert");
+            userLevel.setText("Expert");
         } else if (gamesCount > 20 && correctPercentage >= 70) {
-            userLevel.setText("Niveau: Confirmé");
+            userLevel.setText("Confirmé");
         } else if (gamesCount > 10 && correctPercentage >= 60) {
-            userLevel.setText("Niveau: Intermédiaire");
+            userLevel.setText("Intermédiaire");
         } else if (gamesCount > 5) {
-            userLevel.setText("Niveau: Novice");
+            userLevel.setText("Novice");
         } else {
-            userLevel.setText("Niveau: Débutant");
+            userLevel.setText("Débutant");
         }
     }
     
