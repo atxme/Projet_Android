@@ -12,10 +12,13 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.FieldPath;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 /**
  * Classe utilitaire pour gérer les interactions avec Firestore
@@ -115,231 +118,171 @@ public class FirestoreUtils {
     }
     
     /**
-     * Enregistre les questions de démonstration dans Firestore
+     * Charge les questions à partir d'une liste d'IDs
      */
-    public static void saveDemoQuestionsToFirestore(OnOperationCompleteListener listener) {
-        List<Question> demoQuestions = createDemoQuestions();
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        final int[] savedCount = {0};
+    public static void loadQuestionsById(List<String> questionIds, OnQuestionsLoadedListener listener) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            listener.onQuestionsLoaded(new ArrayList<>());
+            return;
+        }
         
-        for (Question question : demoQuestions) {
-            // Vérifier si l'ID est défini pour éviter les duplications
-            if (question.getId() == null || question.getId().isEmpty()) {
-                question.setId(db.collection("questions").document().getId());
-            }
-            
-            db.collection("questions")
-                .document(question.getId())
-                .set(question.toMap())
-                .addOnCompleteListener(task -> {
-                    savedCount[0]++;
-                    
-                    if (!task.isSuccessful()) {
-                        Log.e(TAG, "Erreur lors de l'enregistrement de la question " + question.getId(), task.getException());
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        List<Question> questions = new ArrayList<>();
+        
+        // Compteur pour suivre les requêtes terminées
+        final int[] count = {0};
+        final int total = questionIds.size();
+        
+        for (String questionId : questionIds) {
+            db.collection("questions").document(questionId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        try {
+                            Question question = Question.fromMap(documentSnapshot.getData(), documentSnapshot.getId());
+                            questions.add(question);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Erreur lors de la conversion de la question", e);
+                        }
                     }
                     
-                    if (savedCount[0] >= demoQuestions.size()) {
-                        if (task.isSuccessful()) {
-                            // Créer des quizzes démo avec ces questions
-                            createDemoQuizzes(demoQuestions, listener);
-                        } else {
-                            listener.onError(task.getException());
-                        }
+                    // Incrémenter le compteur
+                    count[0]++;
+                    
+                    // Si toutes les requêtes sont terminées, appeler le listener
+                    if (count[0] >= total) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erreur lors du chargement de la question " + questionId, e);
+                    
+                    // Incrémenter le compteur même en cas d'erreur
+                    count[0]++;
+                    
+                    // Si toutes les requêtes sont terminées, appeler le listener
+                    if (count[0] >= total) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
                     }
                 });
         }
     }
     
     /**
-     * Crée des quizzes de démonstration en utilisant les questions démo
+     * Méthode alternative utilisant une requête "in" pour charger plusieurs questions en une seule requête
+     * Note: Cette méthode est limitée à 10 IDs maximum par requête Firestore
      */
-    private static void createDemoQuizzes(List<Question> demoQuestions, OnOperationCompleteListener listener) {
+    public static void loadQuestionsByIdBatched(List<String> questionIds, OnQuestionsLoadedListener listener) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            listener.onQuestionsLoaded(new ArrayList<>());
+            return;
+        }
+        
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+        List<Question> questions = new ArrayList<>();
         
-        // Créer un quiz Histoire/Science
-        Quiz scienceQuiz = new Quiz(
-            "quiz_science",
-            "Histoire des sciences",
-            "Un quiz pour tester vos connaissances sur les grands moments de l'histoire des sciences",
-            null,
-            "system",
-            "Quiz Système"
-        );
-        scienceQuiz.setPlayCount(120);
-        scienceQuiz.setRating(4.5);
-        scienceQuiz.setCreatedAt(System.currentTimeMillis());
-        
-        // Ajouter les questions sur la technologie et l'informatique
-        List<String> scienceQuestionIds = new ArrayList<>();
-        for (Question q : demoQuestions) {
-            if ("Technologie".equals(q.getCategory()) || "Informatique".equals(q.getCategory())) {
-                scienceQuestionIds.add(q.getId());
-            }
+        // Diviser les questionIds en lots de 10 (limite Firestore pour les requêtes "in")
+        List<List<String>> batches = new ArrayList<>();
+        for (int i = 0; i < questionIds.size(); i += 10) {
+            int end = Math.min(i + 10, questionIds.size());
+            batches.add(questionIds.subList(i, end));
         }
-        scienceQuiz.setQuestionIds(scienceQuestionIds);
         
-        // Créer un quiz Espace
-        Quiz spaceQuiz = new Quiz(
-            "quiz_space",
-            "Exploration spatiale",
-            "Découvrez les missions qui ont marqué la conquête de l'espace",
-            null,
-            "system",
-            "Quiz Système"
-        );
-        spaceQuiz.setPlayCount(85);
-        spaceQuiz.setRating(4.2);
-        spaceQuiz.setCreatedAt(System.currentTimeMillis() - 86400000); // Hier
+        // Compteur pour suivre les requêtes par lots terminées
+        final int[] batchCount = {0};
+        final int totalBatches = batches.size();
         
-        // Ajouter les questions sur l'espace
-        List<String> spaceQuestionIds = new ArrayList<>();
-        for (Question q : demoQuestions) {
-            if ("Espace".equals(q.getCategory())) {
-                spaceQuestionIds.add(q.getId());
-            }
+        for (List<String> batch : batches) {
+            db.collection("questions")
+                .whereIn(FieldPath.documentId(), batch)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        try {
+                            Question question = Question.fromMap(doc.getData(), doc.getId());
+                            questions.add(question);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Erreur lors de la conversion de la question", e);
+                        }
+                    }
+                    
+                    // Incrémenter le compteur de lots
+                    batchCount[0]++;
+                    
+                    // Si tous les lots sont traités, appeler le listener
+                    if (batchCount[0] >= totalBatches) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erreur lors du chargement d'un lot de questions", e);
+                    
+                    // Incrémenter le compteur de lots même en cas d'erreur
+                    batchCount[0]++;
+                    
+                    // Si tous les lots sont traités, appeler le listener
+                    if (batchCount[0] >= totalBatches) {
+                        // Trier les questions selon l'ordre des IDs
+                        Collections.sort(questions, (q1, q2) -> {
+                            int idx1 = questionIds.indexOf(q1.getId());
+                            int idx2 = questionIds.indexOf(q2.getId());
+                            return Integer.compare(idx1, idx2);
+                        });
+                        
+                        listener.onQuestionsLoaded(questions);
+                    }
+                });
         }
-        spaceQuiz.setQuestionIds(spaceQuestionIds);
-        
-        // Sauvegarder les quizzes
-        final int[] savedCount = {0};
-        final int totalQuizzes = 2;
-        
-        db.collection("quizzes").document(scienceQuiz.getId())
-            .set(scienceQuiz.toMap())
-            .addOnCompleteListener(task -> {
-                savedCount[0]++;
-                
-                if (!task.isSuccessful()) {
-                    Log.e(TAG, "Erreur lors de l'enregistrement du quiz Science", task.getException());
-                }
-                
-                if (savedCount[0] >= totalQuizzes) {
-                    listener.onSuccess();
-                }
-            });
-            
-        db.collection("quizzes").document(spaceQuiz.getId())
-            .set(spaceQuiz.toMap())
-            .addOnCompleteListener(task -> {
-                savedCount[0]++;
-                
-                if (!task.isSuccessful()) {
-                    Log.e(TAG, "Erreur lors de l'enregistrement du quiz Espace", task.getException());
-                }
-                
-                if (savedCount[0] >= totalQuizzes) {
-                    listener.onSuccess();
-                }
-            });
     }
     
     /**
-     * Crée les questions de démonstration
+     * Charge tous les quizzes depuis Firestore
      */
-    private static List<Question> createDemoQuestions() {
-        List<Question> questions = new ArrayList<>();
-        
-        // Question 1
-        List<String> options1 = new ArrayList<>();
-        options1.add("1969");
-        options1.add("1971");
-        options1.add("1975");
-        options1.add("1965");
-        questions.add(new Question(
-            "q1",
-            "En quelle année a été créé le premier microprocesseur Intel 4004?",
-            null,
-            null,
-            options1,
-            1,
-            "Le premier microprocesseur Intel 4004 a été lancé en novembre 1971.",
-            2,
-            "Technologie",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 2
-        List<String> options2 = new ArrayList<>();
-        options2.add("Mer de la Tranquillité");
-        options2.add("Mer de la Sérénité");
-        options2.add("Océan des Tempêtes");
-        options2.add("Mer des Pluies");
-        questions.add(new Question(
-            "q2",
-            "Sur quelle mer lunaire s'est posé Apollo 11?",
-            null,
-            null,
-            options2,
-            0,
-            "Apollo 11 s'est posé sur la Mer de la Tranquillité (Mare Tranquillitatis) le 20 juillet 1969.",
-            3,
-            "Espace",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 3
-        List<String> options3 = new ArrayList<>();
-        options3.add("Alan Turing");
-        options3.add("John von Neumann");
-        options3.add("Ada Lovelace");
-        options3.add("Grace Hopper");
-        questions.add(new Question(
-            "q3",
-            "Qui est considéré comme le père de l'informatique moderne?",
-            null,
-            null,
-            options3,
-            0,
-            "Alan Turing est largement considéré comme le père de l'informatique moderne pour ses travaux sur la machine de Turing et le test de Turing.",
-            2,
-            "Informatique",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 4
-        List<String> options4 = new ArrayList<>();
-        options4.add("Python");
-        options4.add("Java");
-        options4.add("JavaScript");
-        options4.add("C++");
-        questions.add(new Question(
-            "q4",
-            "Quel langage de programmation est le plus utilisé pour l'analyse de données et l'IA?",
-            null,
-            null,
-            options4,
-            0,
-            "Python est le langage de prédilection pour l'analyse de données et l'IA grâce à ses bibliothèques comme TensorFlow, PyTorch, et scikit-learn.",
-            1,
-            "Informatique",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        // Question 5
-        List<String> options5 = new ArrayList<>();
-        options5.add("Bitcoin");
-        options5.add("Ethereum");
-        options5.add("Litecoin");
-        options5.add("Ripple");
-        questions.add(new Question(
-            "q5",
-            "Quelle crypto-monnaie a introduit le concept de 'contrat intelligent'?",
-            null,
-            null,
-            options5,
-            1,
-            "Ethereum a introduit le concept de 'contrat intelligent' (smart contract) qui permet d'exécuter des programmes sur la blockchain.",
-            3,
-            "Technologie",
-            System.currentTimeMillis(),
-            "system"
-        ));
-        
-        return questions;
+    public static void loadAllQuizzes(OnQuizzesLoadedListener listener) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Log.d(TAG, "Début chargement des quizzes depuis Firestore");
+        db.collection("quizzes")
+            .get()
+            .addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    Log.d(TAG, "Requête Firestore réussie, documents: " + (task.getResult() != null ? task.getResult().size() : 0));
+                    List<Quiz> quizzes = new ArrayList<>();
+                    for (DocumentSnapshot document : task.getResult()) {
+                        try {
+                            Log.d(TAG, "Traitement du document: " + document.getId());
+                            Quiz quiz = Quiz.fromMap(document.getData(), document.getId());
+                            quizzes.add(quiz);
+                            Log.d(TAG, "Quiz ajouté: " + quiz.getTitle());
+                        } catch (Exception e) {
+                            Log.e(TAG, "Erreur lors de la conversion du document " + document.getId() + " en quiz: " + e.getMessage(), e);
+                        }
+                    }
+                    listener.onQuizzesLoaded(quizzes);
+                } else {
+                    Log.e(TAG, "Erreur lors du chargement des quizzes", task.getException());
+                    listener.onError(task.getException());
+                }
+            });
     }
     
     /**
@@ -436,22 +379,70 @@ public class FirestoreUtils {
     }
     
     /**
-     * Supprime une question de Firestore
+     * Supprime une question dans Firestore et la retire du quiz associé.
      */
-    public static void deleteQuestion(String questionId, OnOperationCompleteListener listener) {
+    public static void deleteQuestion(String questionId, String quizId, OnOperationCompleteListener listener) {
         if (questionId == null || questionId.isEmpty()) {
-            listener.onError(new IllegalArgumentException("L'ID de la question ne peut pas être vide"));
+            if (listener != null) {
+                listener.onError(new IllegalArgumentException("ID de question invalide"));
+            }
             return;
         }
-        
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("questions")
-            .document(questionId)
+        
+        // Étape 1 : D'abord retirer la question du quiz
+        if (quizId != null && !quizId.isEmpty()) {
+            db.collection("quizzes").document(quizId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    Quiz quiz = Quiz.fromMap(documentSnapshot.getData(), documentSnapshot.getId());
+                    
+                    // Retirer l'ID de la question de la liste
+                    if (quiz.getQuestionIds().contains(questionId)) {
+                        quiz.removeQuestion(questionId);
+                        
+                        // Mise à jour du quiz
+                        db.collection("quizzes").document(quizId)
+                            .update("questionIds", quiz.getQuestionIds())
+                            .addOnSuccessListener(aVoid -> {
+                                // Étape 2 : Supprimer la question
+                                deleteQuestionDocument(questionId, listener);
+                            })
+                            .addOnFailureListener(e -> {
+                                if (listener != null) {
+                                    listener.onError(e);
+                                }
+                            });
+                    } else {
+                        // La question n'est pas dans ce quiz, on la supprime directement
+                        deleteQuestionDocument(questionId, listener);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (listener != null) {
+                        listener.onError(e);
+                    }
+                });
+        } else {
+            // Pas de quiz spécifié, supprimer juste la question
+            deleteQuestionDocument(questionId, listener);
+        }
+    }
+    
+    private static void deleteQuestionDocument(String questionId, OnOperationCompleteListener listener) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("questions").document(questionId)
             .delete()
-            .addOnSuccessListener(aVoid -> listener.onSuccess())
+            .addOnSuccessListener(aVoid -> {
+                if (listener != null) {
+                    listener.onSuccess();
+                }
+            })
             .addOnFailureListener(e -> {
-                Log.e(TAG, "Erreur lors de la suppression de la question " + questionId, e);
-                listener.onError(e);
+                if (listener != null) {
+                    listener.onError(e);
+                }
             });
     }
     

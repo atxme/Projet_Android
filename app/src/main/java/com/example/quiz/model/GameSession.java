@@ -49,7 +49,7 @@ public class GameSession {
         for (String playerId : playerIds) {
             playerScores.put(playerId, 0);
             playerResponseTimes.put(playerId, new ArrayList<>());
-            playerLives.put(playerId, gameMode == Quiz.GameMode.SURVIVAL ? 3 : 0);
+            playerLives.put(playerId, 0); // Mode SURVIVAL supprimé, plus besoin de vies
             playerAnswers.put(playerId, new ArrayList<>());
         }
     }
@@ -79,15 +79,7 @@ public class GameSession {
             playerAnswers.put(playerId, answers);
         }
         
-        // Si mode survie et réponse incorrecte, décrémenter une vie
-        if (gameMode == Quiz.GameMode.SURVIVAL && !isCorrect) {
-            if (playerLives.containsKey(playerId)) {
-                int lives = playerLives.get(playerId);
-                if (lives > 0) {
-                    playerLives.put(playerId, lives - 1);
-                }
-            }
-        }
+        // Le mode SURVIVAL n'existe plus, cette partie n'est plus nécessaire
     }
     
     // Méthode pour passer à la question suivante
@@ -116,11 +108,8 @@ public class GameSession {
     
     // Méthode pour vérifier si un joueur est éliminé (mode survie)
     public boolean isPlayerEliminated(String playerId) {
-        if (gameMode != Quiz.GameMode.SURVIVAL) {
-            return false;
-        }
-        
-        return playerLives.getOrDefault(playerId, 0) <= 0;
+        // Le mode SURVIVAL n'existe plus, retourner toujours false
+        return false;
     }
     
     // Méthode pour obtenir le temps de jeu en millisecondes

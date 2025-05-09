@@ -24,8 +24,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
         viewBinding = true
@@ -42,6 +42,10 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment:2.8.9")
     implementation("androidx.navigation:navigation-ui:2.8.9")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
+    
+    // YouTube Player API
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
     
     // Firebase - avec des versions récentes et sécurisées
     implementation(platform("com.google.firebase:firebase-bom:33.11.0"))

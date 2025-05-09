@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Ombre en haut -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#40000000" />
+        </shape>
+    </item>
+    <!-- Fond blanc avec marge du haut pour créer l'effet d'ombre -->
+    <item android:top="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#F5F5F5" />
+            <corners
+                android:topLeftRadius="16dp"
+                android:topRightRadius="16dp" />
+        </shape>
+    </item>
+</layer-list> 

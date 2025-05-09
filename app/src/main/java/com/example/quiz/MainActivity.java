@@ -2,14 +2,14 @@ package com.example.quiz;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.view.View;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
+import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
@@ -22,6 +22,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private NavController navController;
     private FirebaseAuth mAuth;
+    private TextView headerTitle;
+    private BottomNavigationView bottomNav;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,9 +33,13 @@ public class MainActivity extends AppCompatActivity {
         // Initialisation de Firebase Auth
         mAuth = FirebaseAuth.getInstance();
         
-        // Configuration de la Toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        // Hide the support action bar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+        
+        // Initialiser le header title
+        headerTitle = findViewById(R.id.header_title);
         
         // Configuration de la navigation
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
@@ -43,24 +49,95 @@ public class MainActivity extends AppCompatActivity {
             navController = navHostFragment.getNavController();
             
             // Configuration de la BottomNavigationView si elle existe
-            BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+            bottomNav = findViewById(R.id.bottom_navigation);
             if (bottomNav != null) {
-                NavigationUI.setupWithNavController(bottomNav, navController);
+                // Configuration avancée de la BottomNavigationView
+                setupBottomNavigation();
             }
             
-            // Configuration de la Toolbar avec NavController
-            AppBarConfiguration appBarConfiguration = new AppBarConfiguration
-                    .Builder(R.id.homeFragment, R.id.exploreFragment, R.id.profileFragment)
-                    .build();
-            NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+            // Observer les changements de destination pour mettre à jour le titre
+            navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+                updateHeaderTitle(destination);
+                updateBottomNavVisibility(destination.getId());
+            });
         } else {
             Log.e(TAG, "NavHostFragment est null");
         }
     }
     
+    private void setupBottomNavigation() {
+        // Configurer le comportement de base
+        NavigationUI.setupWithNavController(bottomNav, navController);
+        
+        // Configurer le listener de navigation personnalisé
+        bottomNav.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            
+            // Si on clique sur l'accueil depuis une page différente, on retourne à l'accueil
+            if (itemId == R.id.homeFragment && 
+                navController.getCurrentDestination().getId() != R.id.homeFragment) {
+                // Effacer la pile de retour et naviguer directement vers l'accueil
+                navController.popBackStack(R.id.homeFragment, false);
+                return true;
+            }
+            
+            // Si on clique sur le profil
+            if (itemId == R.id.profileFragment) {
+                if (navController.getCurrentDestination().getId() != R.id.profileFragment) {
+                    navController.navigate(R.id.profileFragment);
+                }
+                return true;
+            }
+            
+            // Comportement par défaut
+            return NavigationUI.onNavDestinationSelected(item, navController);
+        });
+    }
+    
+    // Méthode pour gérer la visibilité de la barre de navigation
+    private void updateBottomNavVisibility(int destinationId) {
+        if (bottomNav != null) {
+            if (destinationId == R.id.authFragment) {
+                // Cacher la barre de navigation sur l'écran d'authentification
+                bottomNav.setVisibility(View.GONE);
+            } else {
+                // Afficher la barre de navigation sur les autres écrans
+                // Mais seulement si l'utilisateur est connecté
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+                if (currentUser != null) {
+                    bottomNav.setVisibility(View.VISIBLE);
+                } else {
+                    bottomNav.setVisibility(View.GONE);
+                }
+            }
+        }
+    }
+    
+    // Méthode pour mettre à jour le titre en fonction de la destination
+    private void updateHeaderTitle(NavDestination destination) {
+        int destinationId = destination.getId();
+        
+        if (destinationId == R.id.homeFragment) {
+            headerTitle.setText("Accueil");
+        } else if (destinationId == R.id.profileFragment) {
+            headerTitle.setText("Mon Profil");
+        } else if (destinationId == R.id.authFragment) {
+            headerTitle.setText("Connexion");
+        } else if (destinationId == R.id.quizDetailsFragment) {
+            headerTitle.setText("Détails du Quiz");
+        } else if (destinationId == R.id.playQuizFragment) {
+            headerTitle.setText("Jouer");
+        } else if (destinationId == R.id.quizResultsFragment) {
+            headerTitle.setText("Résultats");
+        } else {
+            // Titre par défaut
+            headerTitle.setText("Quiz App");
+        }
+    }
+    
     // Configuration globale pour résoudre le problème de null dans onSupportNavigateUp
     private final AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
-            R.id.homeFragment, R.id.exploreFragment, R.id.profileFragment).build();
+            R.id.homeFragment, R.id.profileFragment).build();
     
     @Override
     protected void onStart() {
@@ -73,6 +150,10 @@ public class MainActivity extends AppCompatActivity {
         if (currentUser == null && navController != null && !isUserLoggedInLocally()) {
             // L'utilisateur n'est pas connecté, rediriger vers l'écran d'authentification
             navController.navigate(R.id.authFragment);
+            // Cacher la barre de navigation
+            if (bottomNav != null) {
+                bottomNav.setVisibility(View.GONE);
+            }
         }
     }
     
@@ -89,29 +170,10 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
     
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Gestion des options du menu
-        int id = item.getItemId();
-        
-        if (id == R.id.action_settings) {
-            Toast.makeText(this, "Paramètres", Toast.LENGTH_SHORT).show();
-            return true;
+    // Méthode publique pour permettre aux fragments de montrer la barre de navigation
+    public void showBottomNavigation() {
+        if (bottomNav != null) {
+            bottomNav.setVisibility(View.VISIBLE);
         }
-        
-        return NavigationUI.onNavDestinationSelected(item, navController) || 
-               super.onOptionsItemSelected(item);
-    }
-    
-    @Override
-    public boolean onSupportNavigateUp() {
-        return NavigationUI.navigateUp(navController, appBarConfiguration) || 
-               super.onSupportNavigateUp();
     }
 }

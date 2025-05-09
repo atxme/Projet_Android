@@ -10,16 +10,7 @@ public class Quiz {
     public enum GameMode {
         STANDARD,         // Quiz standard avec points fixes
         TIMED,            // Contre la montre
-        FASTEST,          // Le plus rapide gagne
-        TOP_THREE,        // Les 3 meilleurs sur 4 gagnent des points
-        REGRESSIVE,       // Points décroissants selon l'ordre de réponse
-        SHARED,           // Le gagnant partage avec un autre joueur
-        DOUBLE_OR_NOTHING, // Quitte ou double
-        SURVIVAL,         // Mode survie avec 3 vies
-        RANDOM_CHALLENGE, // Défi aléatoire
-        MARATHON,         // Série de questions consécutives
-        TRAP,             // Une réponse fait perdre des points
-        MEMORY            // Question visible pendant un temps limité
+        SHUFFLE_OPTIONS   // Les réponses changent d'ordre toutes les 2 secondes
     }
 
     private String id;
@@ -139,7 +130,9 @@ public class Quiz {
         return quiz;
     }
 
-    // Méthode pour convertir Quiz en Map pour Firestore
+    /**
+     * Convertit l'objet Quiz en Map pour Firestore
+     */
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("title", title);
@@ -151,12 +144,12 @@ public class Quiz {
         map.put("playCount", playCount);
         map.put("rating", rating);
         map.put("createdAt", createdAt);
-        map.put("updatedAt", updatedAt);
+        map.put("updatedAt", System.currentTimeMillis());
         map.put("isPublic", isPublic);
         map.put("category", category);
         map.put("difficulty", difficulty);
         map.put("timeLimit", timeLimit);
-        map.put("published", published);
+        map.put("gameMode", gameMode != null ? gameMode.name() : GameMode.STANDARD.name());
         return map;
     }
     

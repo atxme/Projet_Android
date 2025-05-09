@@ -41,35 +41,6 @@
             tools:text="Quiz sur l'exploration spatiale" />
 
         <TextView
-            android:id="@+id/textAuthor"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="16dp"
-            android:textAppearance="?attr/textAppearanceBody2"
-            android:textColor="?android:attr/textColorSecondary"
-            app:layout_constraintTop_toBottomOf="@id/textTitle"
-            app:layout_constraintStart_toStartOf="parent"
-            tools:text="Par Utilisateur123" />
-
-        <RatingBar
-            android:id="@+id/ratingBar"
-            style="?android:attr/ratingBarStyleSmall"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
-            android:isIndicator="true"
-            android:numStars="5"
-            android:stepSize="0.1"
-            app:layout_constraintTop_toBottomOf="@id/textAuthor"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            tools:rating="4.5" />
-
-        <TextView
             android:id="@+id/textPlayCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -79,7 +50,8 @@
             android:textAppearance="?attr/textAppearanceBody2"
             android:textColor="?android:attr/textColorTertiary"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBaseline_toBaselineOf="@id/ratingBar"
+            app:layout_constraintTop_toBottomOf="@id/textTitle"
+            app:layout_constraintBottom_toBottomOf="parent"
             tools:text="120 joués" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

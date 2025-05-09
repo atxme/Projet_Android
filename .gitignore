@@ -512,3 +512,4 @@ Thumbs.db
 /captures
 .externalNativeBuild
 .cxx
+serviceAccountKey.json

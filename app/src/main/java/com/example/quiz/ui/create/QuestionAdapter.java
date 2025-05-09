@@ -16,13 +16,13 @@ import java.util.List;
 
 public class QuestionAdapter extends RecyclerView.Adapter<QuestionAdapter.QuestionViewHolder> {
     
-    private List<Question> questions;
-    private OnQuestionActionListener listener;
-    
     public interface OnQuestionActionListener {
         void onEditQuestion(int position);
         void onDeleteQuestion(int position);
     }
+    
+    private final List<Question> questions;
+    private final OnQuestionActionListener listener;
     
     public QuestionAdapter(List<Question> questions, OnQuestionActionListener listener) {
         this.questions = questions;
@@ -48,65 +48,68 @@ public class QuestionAdapter extends RecyclerView.Adapter<QuestionAdapter.Questi
     }
     
     class QuestionViewHolder extends RecyclerView.ViewHolder {
-        private TextView textQuestionText;
-        private TextView textQuestionType;
-        private TextView textAnswerCount;
-        private ImageButton buttonEditQuestion;
-        private ImageButton buttonDeleteQuestion;
+        private final TextView textQuestionText;
+        private final TextView textQuestionType;
+        private final ImageButton buttonEdit;
+        private final ImageButton buttonDelete;
         
         public QuestionViewHolder(@NonNull View itemView) {
             super(itemView);
             textQuestionText = itemView.findViewById(R.id.textQuestionText);
             textQuestionType = itemView.findViewById(R.id.textQuestionType);
-            textAnswerCount = itemView.findViewById(R.id.textAnswerCount);
-            buttonEditQuestion = itemView.findViewById(R.id.buttonEditQuestion);
-            buttonDeleteQuestion = itemView.findViewById(R.id.buttonDeleteQuestion);
+            buttonEdit = itemView.findViewById(R.id.buttonEdit);
+            buttonDelete = itemView.findViewById(R.id.buttonDelete);
         }
         
         public void bind(Question question, int position) {
-            textQuestionText.setText(question.getText());
-            
-            // Définir le type de question
-            String questionType = getQuestionTypeText(question.getType());
-            textQuestionType.setText(questionType);
-            
-            // Afficher le nombre de réponses
-            int optionsCount = question.getOptions() != null ? question.getOptions().size() : 0;
-            textAnswerCount.setText(String.format("%d réponses", optionsCount));
-            
-            // Gérer les clics sur les boutons
-            buttonEditQuestion.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onEditQuestion(position);
-                }
-            });
-            
-            buttonDeleteQuestion.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onDeleteQuestion(position);
-                }
-            });
-        }
-        
-        private String getQuestionTypeText(Question.Type type) {
-            if (type == null) {
-                return "Type inconnu";
+            // Afficher le texte de la question (tronqué si nécessaire)
+            String questionText = question.getText();
+            if (questionText.length() > 100) {
+                questionText = questionText.substring(0, 97) + "...";
             }
+            textQuestionText.setText(questionText);
             
+            // Afficher le type de question
+            Question.Type type = question.getType();
             switch (type) {
                 case SINGLE_CHOICE:
-                    return "Choix unique";
+                    textQuestionType.setText("Choix unique");
+                    break;
                 case MULTIPLE_CHOICE:
-                    return "Choix multiple";
+                    textQuestionType.setText("Choix multiple");
+                    break;
                 case FREE_TEXT:
-                    return "Texte libre";
+                    textQuestionType.setText("Texte libre");
+                    break;
                 case FILL_IN_BLANKS:
-                    return "Texte à trous";
+                    textQuestionType.setText("À trous");
+                    break;
                 case MATCHING:
-                    return "Association";
+                    textQuestionType.setText("Association");
+                    break;
                 default:
-                    return "Type inconnu";
+                    textQuestionType.setText("Type inconnu");
+                    break;
             }
+            
+            // Configurer les boutons
+            buttonEdit.setOnClickListener(v -> {
+                if (listener != null) {
+                    int adapterPosition = getAdapterPosition();
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        listener.onEditQuestion(adapterPosition);
+                    }
+                }
+            });
+            
+            buttonDelete.setOnClickListener(v -> {
+                if (listener != null) {
+                    int adapterPosition = getAdapterPosition();
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        listener.onDeleteQuestion(adapterPosition);
+                    }
+                }
+            });
         }
     }
 } 
