@@ -1,12 +1,14 @@
 package com.example.quiz.ui.quiz;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,12 +17,16 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
 import com.example.quiz.R;
+import com.example.quiz.util.UserStatsManager;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class QuizResultsFragment extends Fragment {
     private static final String TAG = "QuizResultsFragment";
     
     private int score;
     private int totalQuestions;
+    private UserStatsManager statsManager;
+    private boolean statsUpdated = false;
     
     // UI components
     private TextView textResultsTitle;
@@ -41,6 +47,9 @@ public class QuizResultsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
+        // Initialiser le gestionnaire de statistiques
+        statsManager = new UserStatsManager();
+        
         // Récupérer les arguments
         if (getArguments() != null) {
             score = getArguments().getInt("score", 0);
@@ -52,6 +61,9 @@ public class QuizResultsFragment extends Fragment {
         
         // Mettre à jour l'interface utilisateur
         updateUI();
+        
+        // Sauvegarder les statistiques
+        updateUserStats();
         
         // Configurer les boutons
         setupButtons();
@@ -84,6 +96,23 @@ public class QuizResultsFragment extends Fragment {
             textMessage.setText("Pas mal! Vous pouvez vous améliorer.");
         } else {
             textMessage.setText("Continuez à vous entraîner pour améliorer votre score.");
+        }
+    }
+    
+    /**
+     * Met à jour les statistiques de l'utilisateur sur Firebase
+     */
+    private void updateUserStats() {
+        // Éviter les mises à jour multiples si l'utilisateur revient sur cette page
+        if (statsUpdated) return;
+        
+        if (statsManager.isUserLoggedIn()) {
+            // Mettre à jour les statistiques
+            statsManager.updateStats(totalQuestions, score);
+            statsUpdated = true;
+            Log.d(TAG, "Statistiques mises à jour: " + totalQuestions + " questions, " + score + " correctes");
+        } else {
+            Log.d(TAG, "Utilisateur non connecté, statistiques non sauvegardées");
         }
     }
     

@@ -18,6 +18,7 @@ import androidx.navigation.Navigation;
 
 import com.bumptech.glide.Glide;
 import com.example.quiz.R;
+import com.example.quiz.util.UserStatsManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -35,7 +36,7 @@ public class ProfileFragment extends Fragment {
     private TextView gamesPlayed, questionsAnswered, correctAnswers, userLevel;
     private Button logoutButton;
     private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
+    private UserStatsManager statsManager;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -49,7 +50,7 @@ public class ProfileFragment extends Fragment {
         
         // Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        statsManager = new UserStatsManager();
         
         // Initialize views
         userProfileImage = view.findViewById(R.id.user_profile_image);
@@ -112,8 +113,8 @@ public class ProfileFragment extends Fragment {
                     .into(userProfileImage);
             }
             
-            // Load user statistics from Firestore
-            loadUserStatistics(user.getUid());
+            // Load user statistics from Firestore using StatsManager
+            loadUserStatistics();
         } else {
             // User is not logged in
             userName.setText("Invité");
@@ -127,19 +128,12 @@ public class ProfileFragment extends Fragment {
         }
     }
     
-    private void loadUserStatistics(String userId) {
-        db.collection("users").document(userId)
-            .get()
-            .addOnSuccessListener(documentSnapshot -> {
-                if (documentSnapshot.exists()) {
-                    // Récupérer les statistiques avec des valeurs par défaut si non définies
-                    long gamesCount = documentSnapshot.getLong("gamesPlayed") != null ? 
-                            documentSnapshot.getLong("gamesPlayed") : 0;
-                    long questionsCount = documentSnapshot.getLong("questionsAnswered") != null ? 
-                            documentSnapshot.getLong("questionsAnswered") : 0;
-                    long correctCount = documentSnapshot.getLong("correctAnswers") != null ? 
-                            documentSnapshot.getLong("correctAnswers") : 0;
-                    
+    private void loadUserStatistics() {
+        // Utiliser le gestionnaire de statistiques pour charger les données
+        statsManager.getUserStats(new UserStatsManager.OnStatsLoadedListener() {
+            @Override
+            public void onStatsLoaded(int gamesCount, int questionsCount, int correctCount) {
+                if (isAdded()) { // Vérifier que le fragment est toujours attaché
                     // Afficher les statistiques
                     gamesPlayed.setText("Parties jouées: " + gamesCount);
                     questionsAnswered.setText("Questions répondues: " + questionsCount);
@@ -156,22 +150,9 @@ public class ProfileFragment extends Fragment {
                         correctAnswers.setText("Bonnes réponses: 0");
                         userLevel.setText("Niveau: Débutant");
                     }
-                } else {
-                    // Le document utilisateur n'existe pas
-                    Log.d(TAG, "Aucun document utilisateur trouvé pour l'ID: " + userId);
-                    gamesPlayed.setText("Parties jouées: 0");
-                    questionsAnswered.setText("Questions répondues: 0");
-                    correctAnswers.setText("Bonnes réponses: 0");
-                    userLevel.setText("Niveau: Débutant");
                 }
-            })
-            .addOnFailureListener(e -> {
-                Log.w(TAG, "Erreur lors du chargement des statistiques utilisateur", e);
-                gamesPlayed.setText("Parties jouées: --");
-                questionsAnswered.setText("Questions répondues: --");
-                correctAnswers.setText("Bonnes réponses: --");
-                userLevel.setText("Niveau: --");
-            });
+            }
+        });
     }
     
     private void determineUserLevel(long gamesCount, long questionsCount, double correctPercentage) {
