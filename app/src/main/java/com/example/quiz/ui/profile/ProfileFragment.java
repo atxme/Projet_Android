@@ -23,12 +23,16 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class ProfileFragment extends Fragment {
 
     private static final String TAG = "ProfileFragment";
     private ImageView userProfileImage;
-    private TextView userName, userEmail, userId;
-    private TextView gamesPlayed, questionsAnswered, correctAnswers;
+    private TextView userName, userEmail, userId, joinDate;
+    private TextView gamesPlayed, questionsAnswered, correctAnswers, userLevel;
     private Button logoutButton;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -52,9 +56,11 @@ public class ProfileFragment extends Fragment {
         userName = view.findViewById(R.id.user_name);
         userEmail = view.findViewById(R.id.user_email);
         userId = view.findViewById(R.id.user_id);
+        joinDate = view.findViewById(R.id.join_date);
         gamesPlayed = view.findViewById(R.id.games_played);
         questionsAnswered = view.findViewById(R.id.questions_answered);
         correctAnswers = view.findViewById(R.id.correct_answers);
+        userLevel = view.findViewById(R.id.user_level);
         logoutButton = view.findViewById(R.id.logout_button);
         
         // Display user information
@@ -87,6 +93,16 @@ public class ProfileFragment extends Fragment {
             // Set user ID
             userId.setText("ID: " + user.getUid());
             
+            // Set account creation date
+            if (user.getMetadata() != null && user.getMetadata().getCreationTimestamp() > 0) {
+                long creationDate = user.getMetadata().getCreationTimestamp();
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                String formattedDate = dateFormat.format(new Date(creationDate));
+                joinDate.setText("Membre depuis: " + formattedDate);
+            } else {
+                joinDate.setText("Membre depuis: Information non disponible");
+            }
+            
             // Set user profile image
             if (user.getPhotoUrl() != null) {
                 Glide.with(this)
@@ -103,9 +119,11 @@ public class ProfileFragment extends Fragment {
             userName.setText("Invité");
             userEmail.setText("Non connecté");
             userId.setText("");
+            joinDate.setText("Membre depuis: -");
             gamesPlayed.setText("Parties jouées: 0");
             questionsAnswered.setText("Questions répondues: 0");
             correctAnswers.setText("Bonnes réponses: 0");
+            userLevel.setText("Niveau: -");
         }
     }
     
@@ -125,13 +143,18 @@ public class ProfileFragment extends Fragment {
                     // Afficher les statistiques
                     gamesPlayed.setText("Parties jouées: " + gamesCount);
                     questionsAnswered.setText("Questions répondues: " + questionsCount);
-                    correctAnswers.setText("Bonnes réponses: " + correctCount);
                     
                     // Calculer le pourcentage de bonnes réponses si possible
                     if (questionsCount > 0) {
                         double correctPercentage = (double) correctCount / questionsCount * 100;
                         correctAnswers.setText(String.format("Bonnes réponses: %d (%.1f%%)", 
                                 correctCount, correctPercentage));
+                        
+                        // Définir le niveau utilisateur en fonction des statistiques
+                        determineUserLevel(gamesCount, questionsCount, correctPercentage);
+                    } else {
+                        correctAnswers.setText("Bonnes réponses: 0");
+                        userLevel.setText("Niveau: Débutant");
                     }
                 } else {
                     // Le document utilisateur n'existe pas
@@ -139,6 +162,7 @@ public class ProfileFragment extends Fragment {
                     gamesPlayed.setText("Parties jouées: 0");
                     questionsAnswered.setText("Questions répondues: 0");
                     correctAnswers.setText("Bonnes réponses: 0");
+                    userLevel.setText("Niveau: Débutant");
                 }
             })
             .addOnFailureListener(e -> {
@@ -146,7 +170,23 @@ public class ProfileFragment extends Fragment {
                 gamesPlayed.setText("Parties jouées: --");
                 questionsAnswered.setText("Questions répondues: --");
                 correctAnswers.setText("Bonnes réponses: --");
+                userLevel.setText("Niveau: --");
             });
+    }
+    
+    private void determineUserLevel(long gamesCount, long questionsCount, double correctPercentage) {
+        // Déterminer le niveau en fonction des statistiques
+        if (gamesCount > 50 && correctPercentage >= 80) {
+            userLevel.setText("Niveau: Expert");
+        } else if (gamesCount > 20 && correctPercentage >= 70) {
+            userLevel.setText("Niveau: Confirmé");
+        } else if (gamesCount > 10 && correctPercentage >= 60) {
+            userLevel.setText("Niveau: Intermédiaire");
+        } else if (gamesCount > 5) {
+            userLevel.setText("Niveau: Novice");
+        } else {
+            userLevel.setText("Niveau: Débutant");
+        }
     }
     
     private void logout() {

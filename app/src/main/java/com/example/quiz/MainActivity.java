@@ -3,6 +3,7 @@ package com.example.quiz;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -57,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
             // Observer les changements de destination pour mettre à jour le titre
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
                 updateHeaderTitle(destination);
+                updateBottomNavVisibility(destination.getId());
             });
         } else {
             Log.e(TAG, "NavHostFragment est null");
@@ -90,6 +92,25 @@ public class MainActivity extends AppCompatActivity {
             // Comportement par défaut
             return NavigationUI.onNavDestinationSelected(item, navController);
         });
+    }
+    
+    // Méthode pour gérer la visibilité de la barre de navigation
+    private void updateBottomNavVisibility(int destinationId) {
+        if (bottomNav != null) {
+            if (destinationId == R.id.authFragment) {
+                // Cacher la barre de navigation sur l'écran d'authentification
+                bottomNav.setVisibility(View.GONE);
+            } else {
+                // Afficher la barre de navigation sur les autres écrans
+                // Mais seulement si l'utilisateur est connecté
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+                if (currentUser != null) {
+                    bottomNav.setVisibility(View.VISIBLE);
+                } else {
+                    bottomNav.setVisibility(View.GONE);
+                }
+            }
+        }
     }
     
     // Méthode pour mettre à jour le titre en fonction de la destination
@@ -129,6 +150,10 @@ public class MainActivity extends AppCompatActivity {
         if (currentUser == null && navController != null && !isUserLoggedInLocally()) {
             // L'utilisateur n'est pas connecté, rediriger vers l'écran d'authentification
             navController.navigate(R.id.authFragment);
+            // Cacher la barre de navigation
+            if (bottomNav != null) {
+                bottomNav.setVisibility(View.GONE);
+            }
         }
     }
     
@@ -143,5 +168,12 @@ public class MainActivity extends AppCompatActivity {
         
         // Pour l'instant, on retourne false pour forcer l'affichage de l'écran d'authentification
         return false;
+    }
+    
+    // Méthode publique pour permettre aux fragments de montrer la barre de navigation
+    public void showBottomNavigation() {
+        if (bottomNav != null) {
+            bottomNav.setVisibility(View.VISIBLE);
+        }
     }
 }

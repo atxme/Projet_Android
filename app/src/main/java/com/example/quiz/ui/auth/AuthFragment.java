@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
+import com.example.quiz.MainActivity;
 import com.example.quiz.R;
 import com.example.quiz.databinding.FragmentAuthBinding;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -171,7 +172,13 @@ public class AuthFragment extends Fragment {
     }
 
     private void navigateToHome() {
+        // Naviguer vers l'écran d'accueil
         navController.navigate(R.id.action_auth_to_home);
+        
+        // Informer l'activité principale que l'utilisateur est connecté pour afficher la barre de navigation
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showBottomNavigation();
+        }
     }
 
     private void showProgressBar() {
