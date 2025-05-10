@@ -30,6 +30,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.example.quiz.util.BackgroundMusicManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -366,5 +367,11 @@ public class HomeFragment extends Fragment {
                 Log.e(TAG, "Erreur lors de la création du quiz de démonstration", e);
             }
         });
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        BackgroundMusicManager.start(requireContext(), R.raw.background_music);
     }
 } 

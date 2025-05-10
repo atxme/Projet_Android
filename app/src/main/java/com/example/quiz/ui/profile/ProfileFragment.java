@@ -24,6 +24,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.quiz.util.BackgroundMusicManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -74,6 +75,12 @@ public class ProfileFragment extends Fragment {
         logoutButton.setOnClickListener(v -> logout());
     }
     
+    @Override
+    public void onStart() {
+        super.onStart();
+        BackgroundMusicManager.start(requireContext(), R.raw.background_music);
+    }
+
     private void displayUserInfo() {
         FirebaseUser user = mAuth.getCurrentUser();
         

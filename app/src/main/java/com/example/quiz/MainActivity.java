@@ -17,6 +17,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.example.quiz.util.BackgroundMusicManager;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -142,19 +143,28 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        // Vérifier si l'utilisateur est connecté à Firebase
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        
-        // Si l'utilisateur n'est pas connecté à Firebase, rediriger vers l'écran d'authentification
-        // seulement lors du premier démarrage de l'application
         if (currentUser == null && navController != null && !isUserLoggedInLocally()) {
-            // L'utilisateur n'est pas connecté, rediriger vers l'écran d'authentification
             navController.navigate(R.id.authFragment);
-            // Cacher la barre de navigation
             if (bottomNav != null) {
                 bottomNav.setVisibility(View.GONE);
             }
         }
+        // Démarrer la musique de fond uniquement sur les menus
+        if (navController != null) {
+            int destId = navController.getCurrentDestination() != null ? navController.getCurrentDestination().getId() : -1;
+            if (destId == R.id.homeFragment || destId == R.id.profileFragment || destId == R.id.quizResultsFragment || destId == R.id.quizDetailsFragment) {
+                BackgroundMusicManager.start(this, R.raw.background_music);
+            } else {
+                BackgroundMusicManager.stop();
+            }
+        }
+    }
+    
+    @Override
+    protected void onStop() {
+        super.onStop();
+        BackgroundMusicManager.stop();
     }
     
     // Méthode pour vérifier si l'utilisateur est connecté localement

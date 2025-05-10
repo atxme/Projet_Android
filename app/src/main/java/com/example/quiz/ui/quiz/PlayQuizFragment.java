@@ -31,6 +31,7 @@ import com.example.quiz.util.MediaUtils;
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer;
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener;
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView;
+import com.example.quiz.util.BackgroundMusicManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -655,5 +656,11 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         if (youtubePlayerView != null) {
             youtubePlayerView.release();
         }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        BackgroundMusicManager.stop();
     }
 } 
