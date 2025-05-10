@@ -1,5 +1,6 @@
 package com.example.quiz.ui.quiz;
 
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,6 +19,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
+import com.bumptech.glide.Glide;
 import com.example.quiz.R;
 import com.example.quiz.model.Quiz;
 import com.example.quiz.util.FirestoreUtils;
@@ -157,20 +159,29 @@ public class QuizDetailsFragment extends Fragment {
         
         // Image du quiz (si disponible)
         if (quiz.getImageUrl() != null && !quiz.getImageUrl().isEmpty()) {
-            // Convertir l'image Base64 en Bitmap si nécessaire
-            if (quiz.getImageUrl().startsWith("data:image") || 
-                    quiz.getImageUrl().startsWith("/9j/")) {
-                imageQuiz.setImageBitmap(MediaUtils.base64ToImage(quiz.getImageUrl()));
+            if (quiz.getImageUrl().startsWith("http")) {
+                // Utilise Glide pour charger l'image depuis l'URL
+                Glide.with(requireContext())
+                        .load(quiz.getImageUrl())
+                        .placeholder(R.drawable.ic_quiz_placeholder)
+                        .error(R.drawable.ic_quiz_placeholder)
+                        .into(imageQuiz);
+            } else if (quiz.getImageUrl().length() > 100) {
+                // Probablement du base64
+                Bitmap bitmap = MediaUtils.base64ToImage(quiz.getImageUrl());
+                if (bitmap != null) {
+                    imageQuiz.setImageBitmap(bitmap);
+                } else {
+                    imageQuiz.setImageResource(R.drawable.ic_quiz_placeholder);
+                }
             } else {
-                // Charger l'image depuis une URL (à implémenter)
-                // Pour l'instant, utiliser une image par défaut
-                imageQuiz.setImageResource(R.drawable.default_quiz_image);
+                // Probablement un chemin local
+                imageQuiz.setImageResource(R.drawable.ic_quiz_placeholder);
             }
         } else {
-            // Image par défaut
-            imageQuiz.setImageResource(R.drawable.default_quiz_image);
+            imageQuiz.setImageResource(R.drawable.ic_quiz_placeholder);
         }
-        
+
         // Activer le bouton de démarrage seulement si le quiz a des questions
         buttonStartQuiz.setEnabled(questionCount > 0);
         if (questionCount == 0) {

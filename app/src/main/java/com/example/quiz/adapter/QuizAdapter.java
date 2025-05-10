@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.quiz.R;
 import com.example.quiz.model.Quiz;
 import com.example.quiz.util.MediaUtils;
+import com.bumptech.glide.Glide;
 
 import java.util.List;
 
@@ -84,11 +85,13 @@ public class QuizAdapter extends RecyclerView.Adapter<QuizAdapter.QuizViewHolder
             // Charger l'image (de base64 si disponible)
             String imageUrl = quiz.getImageUrl();
             if (imageUrl != null && !imageUrl.isEmpty()) {
-                // Vérifier si c'est du base64 ou un chemin
                 if (imageUrl.startsWith("http")) {
-                    // URL - à gérer avec une bibliothèque comme Glide
-                    // Note: normalement nous n'utilisons pas Firebase Storage
-                    imageQuiz.setImageResource(R.drawable.ic_quiz_placeholder);
+                    // Utilise Glide pour charger l'image depuis l'URL
+                    Glide.with(itemView.getContext())
+                        .load(imageUrl)
+                        .placeholder(R.drawable.ic_quiz_placeholder)
+                        .error(R.drawable.ic_quiz_placeholder)
+                        .into(imageQuiz);
                 } else if (imageUrl.length() > 100) {
                     // Probablement du base64
                     Bitmap bitmap = MediaUtils.base64ToImage(imageUrl);
@@ -105,7 +108,6 @@ public class QuizAdapter extends RecyclerView.Adapter<QuizAdapter.QuizViewHolder
                     // imageQuiz.setImageURI(Uri.fromFile(file));
                 }
             } else {
-                // Aucune image disponible
                 imageQuiz.setImageResource(R.drawable.ic_quiz_placeholder);
             }
         }

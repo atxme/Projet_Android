@@ -500,7 +500,7 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
             case STANDARD:
             default:
                 // Points standards
-                return 10;
+                return 1;
         }
     }
     
