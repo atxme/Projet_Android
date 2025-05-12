@@ -1,6 +1,7 @@
 package com.example.quiz.ui.profile;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -223,10 +224,40 @@ public class ProfileFragment extends Fragment {
     }
     
     private void logout() {
+        // Déconnexion de Firebase
         mAuth.signOut();
-        Toast.makeText(requireContext(), "Déconnecté", Toast.LENGTH_SHORT).show();
         
-        // Navigate to auth screen
+        // Déconnexion de Google SignIn
+        try {
+            // Utiliser GoogleSignIn pour obtenir le client et se déconnecter
+            com.google.android.gms.auth.api.signin.GoogleSignInOptions gso = 
+                new com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                    com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+                
+            com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(requireActivity(), gso)
+                .signOut()
+                .addOnCompleteListener(requireActivity(), task -> {
+                    // Une fois déconnecté de Google, naviguer vers l'écran d'authentification
+                    Toast.makeText(requireContext(), "Déconnecté", Toast.LENGTH_SHORT).show();
+                    navigateToAuthScreen();
+                });
+        } catch (Exception e) {
+            // En cas d'erreur de déconnexion de Google, continuer avec la navigation
+            Log.e(TAG, "Erreur lors de la déconnexion de Google: " + e.getMessage());
+            Toast.makeText(requireContext(), "Déconnecté", Toast.LENGTH_SHORT).show();
+            navigateToAuthScreen();
+        }
+    }
+    
+    private void navigateToAuthScreen() {
+        // Masquer la barre de navigation inférieure si possible
+        if (getActivity() instanceof com.example.quiz.MainActivity) {
+            ((com.example.quiz.MainActivity) getActivity()).hideBottomNavigation();
+        }
+        
+        // Naviguer vers l'écran d'authentification
         NavController navController = Navigation.findNavController(requireView());
         navController.navigate(R.id.authFragment);
     }

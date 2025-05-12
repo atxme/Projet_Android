@@ -184,4 +184,11 @@ public class MainActivity extends AppCompatActivity {
             bottomNav.setVisibility(View.VISIBLE);
         }
     }
+    
+    // Méthode publique pour permettre aux fragments de cacher la barre de navigation
+    public void hideBottomNavigation() {
+        if (bottomNav != null) {
+            bottomNav.setVisibility(View.GONE);
+        }
+    }
 }
