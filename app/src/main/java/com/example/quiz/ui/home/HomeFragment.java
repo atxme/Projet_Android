@@ -19,25 +19,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.quiz.R;
-import com.example.quiz.adapter.CategoryAdapter;
 import com.example.quiz.adapter.QuizAdapter;
 import com.example.quiz.model.Quiz;
 import com.example.quiz.model.Question;
 import com.example.quiz.util.FirestoreUtils;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.example.quiz.util.BackgroundMusicManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";

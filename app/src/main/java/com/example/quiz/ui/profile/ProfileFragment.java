@@ -1,7 +1,6 @@
 package com.example.quiz.ui.profile;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,8 +21,6 @@ import com.example.quiz.R;
 import com.example.quiz.util.UserStatsManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.example.quiz.util.BackgroundMusicManager;
 
 import java.text.SimpleDateFormat;
