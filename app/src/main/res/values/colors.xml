@@ -7,4 +7,13 @@
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
+    
+    <!-- Couleurs des catégories de quiz -->
+    <color name="category_tech">#4285F4</color>         <!-- Bleu Google -->
+    <color name="category_history">#DB4437</color>      <!-- Rouge Google -->
+    <color name="category_cinema">#F4B400</color>       <!-- Jaune Google -->
+    <color name="category_sports">#0F9D58</color>       <!-- Vert Google -->
+    <color name="category_music">#9C27B0</color>        <!-- Violet -->
+    <color name="category_culture">#FF6D00</color>      <!-- Orange -->
+    <color name="category_other">#607D8B</color>        <!-- Bleu-gris -->
 </resources>

@@ -1,5 +1,6 @@
 package com.example.quiz.ui.home;
 
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -40,8 +41,8 @@ public class HomeFragment extends Fragment {
     private ProgressBar progressBar;
     private SwipeRefreshLayout swipeRefreshLayout;
     
-    private QuizAdapter popularAdapter;
-    private QuizAdapter recentAdapter;
+    private com.example.quiz.ui.home.QuizAdapter popularAdapter;
+    private com.example.quiz.ui.home.QuizAdapter recentAdapter;
     
     private List<Quiz> popularQuizzes = new ArrayList<>();
     private List<Quiz> recentQuizzes = new ArrayList<>();
@@ -76,6 +77,18 @@ public class HomeFragment extends Fragment {
         swipeRefreshLayout.setColorSchemeResources(R.color.purple_500, R.color.teal_200);
         swipeRefreshLayout.setOnRefreshListener(this::refreshData);
         
+        // Configurer le bouton "Commencer un Quiz"
+        view.findViewById(R.id.button_start_quiz).setOnClickListener(v -> {
+            if (!popularQuizzes.isEmpty()) {
+                // Sélectionner un quiz aléatoire dans la liste des populaires
+                int randomIndex = (int) (Math.random() * popularQuizzes.size());
+                Quiz randomQuiz = popularQuizzes.get(randomIndex);
+                navigateToPlayQuiz(randomQuiz);
+            } else {
+                Toast.makeText(getContext(), "Aucun quiz disponible pour le moment", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
         // Charger les données
         loadData();
     }
@@ -91,16 +104,33 @@ public class HomeFragment extends Fragment {
     
     private void setupRecyclerViews(View view) {
         // RecyclerView des quizzes populaires
-        recyclerViewPopular.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        popularAdapter = new QuizAdapter(popularQuizzes, quiz -> {
+        LinearLayoutManager popularLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
+        recyclerViewPopular.setLayoutManager(popularLayoutManager);
+        
+        // Ajouter une décoration d'item pour les espaces entre les cartes
+        int cardSpacing = getResources().getDimensionPixelSize(R.dimen.card_spacing);
+        recyclerViewPopular.addItemDecoration(new HorizontalSpaceItemDecoration(cardSpacing));
+        
+        // Désactiver le surscroll effet (glow)
+        recyclerViewPopular.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        
+        popularAdapter = new com.example.quiz.ui.home.QuizAdapter(popularQuizzes, quiz -> {
             // Navigation vers la page de quiz sélectionné
             navigateToPlayQuiz(quiz);
         });
         recyclerViewPopular.setAdapter(popularAdapter);
         
         // RecyclerView des quizzes récents
-        recyclerViewRecent.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        recentAdapter = new QuizAdapter(recentQuizzes, quiz -> {
+        LinearLayoutManager recentLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
+        recyclerViewRecent.setLayoutManager(recentLayoutManager);
+        
+        // Appliquer la même décoration d'item
+        recyclerViewRecent.addItemDecoration(new HorizontalSpaceItemDecoration(cardSpacing));
+        
+        // Désactiver le surscroll effet (glow)
+        recyclerViewRecent.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        
+        recentAdapter = new com.example.quiz.ui.home.QuizAdapter(recentQuizzes, quiz -> {
             // Navigation vers la page de quiz sélectionné
             navigateToPlayQuiz(quiz);
         });
@@ -366,5 +396,24 @@ public class HomeFragment extends Fragment {
     public void onStart() {
         super.onStart();
         BackgroundMusicManager.start(requireContext(), R.raw.background_music);
+    }
+
+    /**
+     * Classe de décoration pour ajouter des espaces horizontaux entre les éléments du RecyclerView
+     */
+    private static class HorizontalSpaceItemDecoration extends RecyclerView.ItemDecoration {
+        private final int spaceWidth;
+        
+        public HorizontalSpaceItemDecoration(int spaceWidth) {
+            this.spaceWidth = spaceWidth;
+        }
+        
+        @Override
+        public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
+            // Ajouter un espace à droite de chaque élément sauf le dernier
+            if (parent.getChildAdapterPosition(view) != parent.getAdapter().getItemCount() - 1) {
+                outRect.right = spaceWidth;
+            }
+        }
     }
 } 
