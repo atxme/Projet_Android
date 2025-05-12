@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "492689457206-igpt1t7f81vv9uus8gdgn3dp0r5kthfl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.quiz",
+            "certificate_hash": "9b504a37d1c58edeec7757dd08d8a8b85f51fb3b"
+          }
+        },
+        {
           "client_id": "492689457206-3bfa231lprvjnd231jqtv1rkg0jfeo6c.apps.googleusercontent.com",
           "client_type": 3
         }
