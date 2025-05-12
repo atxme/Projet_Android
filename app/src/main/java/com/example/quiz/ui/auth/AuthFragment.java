@@ -141,22 +141,46 @@ public class AuthFragment extends Fragment {
     }
 
     private void createUserProfileInFirestore(FirebaseUser user) {
-        Map<String, Object> userProfile = new HashMap<>();
-        userProfile.put("uid", user.getUid());
-        userProfile.put("email", user.getEmail());
-        userProfile.put("displayName", user.getDisplayName());
-        userProfile.put("photoUrl", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null);
-        userProfile.put("createdAt", System.currentTimeMillis());
-        
-        // Initialiser les statistiques utilisateur
-        userProfile.put("gamesPlayed", 0);
-        userProfile.put("questionsAnswered", 0);
-        userProfile.put("correctAnswers", 0);
-        
+        // Vérifier d'abord si le document utilisateur existe déjà
         db.collection("users").document(user.getUid())
-                .set(userProfile)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "User profile created or updated"))
-                .addOnFailureListener(e -> Log.w(TAG, "Error creating user profile", e));
+            .get()
+            .addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    // Le document existe déjà, mettre à jour uniquement les informations de profil
+                    // sans toucher aux statistiques
+                    Map<String, Object> userProfile = new HashMap<>();
+                    userProfile.put("email", user.getEmail());
+                    userProfile.put("displayName", user.getDisplayName());
+                    userProfile.put("photoUrl", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null);
+                    userProfile.put("lastLogin", System.currentTimeMillis());
+                    
+                    // Mettre à jour seulement les informations de profil sans écraser les statistiques
+                    db.collection("users").document(user.getUid())
+                        .update(userProfile)
+                        .addOnSuccessListener(aVoid -> Log.d(TAG, "Profil utilisateur mis à jour sans écraser les statistiques"))
+                        .addOnFailureListener(e -> Log.w(TAG, "Erreur lors de la mise à jour du profil utilisateur", e));
+                } else {
+                    // Le document n'existe pas, créer un nouveau profil avec les statistiques à 0
+                    Map<String, Object> userProfile = new HashMap<>();
+                    userProfile.put("uid", user.getUid());
+                    userProfile.put("email", user.getEmail());
+                    userProfile.put("displayName", user.getDisplayName());
+                    userProfile.put("photoUrl", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null);
+                    userProfile.put("createdAt", System.currentTimeMillis());
+                    userProfile.put("lastLogin", System.currentTimeMillis());
+                    
+                    // Initialiser les statistiques utilisateur seulement pour les nouveaux utilisateurs
+                    userProfile.put("gamesPlayed", 0);
+                    userProfile.put("questionsAnswered", 0);
+                    userProfile.put("correctAnswers", 0);
+                    
+                    db.collection("users").document(user.getUid())
+                        .set(userProfile)
+                        .addOnSuccessListener(aVoid -> Log.d(TAG, "Nouveau profil utilisateur créé"))
+                        .addOnFailureListener(e -> Log.w(TAG, "Erreur lors de la création du profil utilisateur", e));
+                }
+            })
+            .addOnFailureListener(e -> Log.w(TAG, "Erreur lors de la vérification de l'existence du profil utilisateur", e));
     }
 
     private void playAsGuest() {

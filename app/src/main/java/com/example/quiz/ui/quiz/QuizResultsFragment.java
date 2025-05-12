@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -36,6 +37,8 @@ public class QuizResultsFragment extends Fragment {
     private TextView textMessage;
     private Button buttonBackToHome;
     private Button buttonReplayQuiz;
+    private ProgressBar progressUpdatingStats;
+    private TextView textStatsStatus;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -77,6 +80,19 @@ public class QuizResultsFragment extends Fragment {
         textMessage = view.findViewById(R.id.textMessage);
         buttonBackToHome = view.findViewById(R.id.buttonBackToHome);
         buttonReplayQuiz = view.findViewById(R.id.buttonReplayQuiz);
+        
+        // Éléments UI pour le statut de mise à jour des statistiques
+        progressUpdatingStats = view.findViewById(R.id.progress_updating_stats);
+        textStatsStatus = view.findViewById(R.id.text_stats_status);
+        
+        // Cacher ces éléments par défaut s'ils existent
+        if (progressUpdatingStats != null) {
+            progressUpdatingStats.setVisibility(View.GONE);
+        }
+        
+        if (textStatsStatus != null) {
+            textStatsStatus.setVisibility(View.GONE);
+        }
     }
     
     private void updateUI() {
@@ -107,9 +123,40 @@ public class QuizResultsFragment extends Fragment {
         if (statsUpdated) return;
         
         if (statsManager.isUserLoggedIn()) {
+            // Afficher l'indicateur de chargement si disponible
+            if (progressUpdatingStats != null) {
+                progressUpdatingStats.setVisibility(View.VISIBLE);
+            }
+            
+            if (textStatsStatus != null) {
+                textStatsStatus.setVisibility(View.VISIBLE);
+                textStatsStatus.setText("Mise à jour des statistiques...");
+            }
+            
             // Mettre à jour les statistiques
             statsManager.updateStats(totalQuestions, score);
             statsUpdated = true;
+            
+            // Cacher l'indicateur après un délai
+            if (getView() != null) {
+                getView().postDelayed(() -> {
+                    if (isAdded() && progressUpdatingStats != null) {
+                        progressUpdatingStats.setVisibility(View.GONE);
+                    }
+                    
+                    if (isAdded() && textStatsStatus != null) {
+                        textStatsStatus.setText("Statistiques mises à jour");
+                        
+                        // Faire disparaître le message après quelques secondes
+                        getView().postDelayed(() -> {
+                            if (isAdded() && textStatsStatus != null) {
+                                textStatsStatus.setVisibility(View.GONE);
+                            }
+                        }, 2000);
+                    }
+                }, 1000);
+            }
+            
             Log.d(TAG, "Statistiques mises à jour: " + totalQuestions + " questions, " + score + " correctes");
         } else {
             Log.d(TAG, "Utilisateur non connecté, statistiques non sauvegardées");

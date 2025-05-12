@@ -15,6 +15,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.Glide;
 import com.example.quiz.R;
@@ -35,6 +36,7 @@ public class ProfileFragment extends Fragment {
     private TextView gamesPlayed, questionsAnswered, correctAnswers, userLevel;
     private ProgressBar progressBar;
     private Button logoutButton;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private FirebaseAuth mAuth;
     private UserStatsManager statsManager;
 
@@ -64,6 +66,17 @@ public class ProfileFragment extends Fragment {
         userLevel = view.findViewById(R.id.user_level);
         progressBar = view.findViewById(R.id.progress_bar);
         logoutButton = view.findViewById(R.id.logout_button);
+        swipeRefreshLayout = view.findViewById(R.id.swipe_refresh_layout);
+        
+        // Configure pull-to-refresh
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setOnRefreshListener(this::refreshUserData);
+            swipeRefreshLayout.setColorSchemeResources(
+                R.color.purple_500, 
+                R.color.purple_700, 
+                R.color.teal_200
+            );
+        }
         
         // Display user information
         displayUserInfo();
@@ -76,6 +89,23 @@ public class ProfileFragment extends Fragment {
     public void onStart() {
         super.onStart();
         BackgroundMusicManager.start(requireContext(), R.raw.background_music);
+    }
+    
+    /**
+     * Rafraîchit les données utilisateur, y compris les statistiques
+     */
+    private void refreshUserData() {
+        // Mettre à jour l'affichage de l'utilisateur
+        displayUserInfo();
+        
+        // Désactiver l'indicateur de rafraîchissement après un court délai
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.postDelayed(() -> {
+                if (swipeRefreshLayout != null && isAdded()) {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
+            }, 1000);
+        }
     }
 
     private void displayUserInfo() {
@@ -120,6 +150,13 @@ public class ProfileFragment extends Fragment {
                     .into(userProfileImage);
             }
             
+            // Montrer un état de chargement pour les statistiques
+            gamesPlayed.setText("Parties jouées: Chargement...");
+            questionsAnswered.setText("Questions répondues: Chargement...");
+            correctAnswers.setText("Bonnes réponses: Chargement...");
+            userLevel.setText("Niveau: Chargement...");
+            progressBar.setIndeterminate(true);
+            
             // Load user statistics from Firestore using StatsManager
             loadUserStatistics();
         } else {
@@ -142,6 +179,9 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onStatsLoaded(int gamesCount, int questionsCount, int correctCount) {
                 if (isAdded()) { // Vérifier que le fragment est toujours attaché
+                    // Remettre la barre de progression en mode déterminé
+                    progressBar.setIndeterminate(false);
+                    
                     // Afficher les statistiques
                     gamesPlayed.setText("Parties jouées: " + gamesCount);
                     questionsAnswered.setText("Questions répondues: " + questionsCount);

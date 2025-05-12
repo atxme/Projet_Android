@@ -51,6 +51,28 @@ public class UserStatsManager {
         }
         
         String userId = currentUser.getUid();
+        
+        // Vérifier d'abord si le document utilisateur existe
+        db.collection(USERS_COLLECTION).document(userId)
+            .get()
+            .addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    // Le document existe, incrémenter les statistiques
+                    incrementExistingStats(userId, questionsAnswered, correctAnswers);
+                } else {
+                    // Le document n'existe pas, le créer avec les valeurs initiales
+                    createUserProfile(questionsAnswered, correctAnswers);
+                }
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Erreur lors de la vérification de l'existence du profil utilisateur", e);
+            });
+    }
+    
+    /**
+     * Incrémente les statistiques d'un utilisateur existant
+     */
+    private void incrementExistingStats(String userId, int questionsAnswered, int correctAnswers) {
         DocumentReference userRef = db.collection(USERS_COLLECTION).document(userId);
         
         Map<String, Object> updates = new HashMap<>();
@@ -64,10 +86,6 @@ public class UserStatsManager {
             })
             .addOnFailureListener(e -> {
                 Log.e(TAG, "Erreur lors de la mise à jour des statistiques", e);
-                // Si le document n'existe pas, le créer
-                if (e.getMessage() != null && e.getMessage().contains("No document to update")) {
-                    createUserProfile(questionsAnswered, correctAnswers);
-                }
             });
     }
     
