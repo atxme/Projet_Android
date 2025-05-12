@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null && navController != null && !isUserLoggedInLocally()) {
+        if (currentUser == null && navController != null) {
             navController.navigate(R.id.authFragment);
             if (bottomNav != null) {
                 bottomNav.setVisibility(View.GONE);
@@ -163,19 +163,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         BackgroundMusicManager.stop();
-    }
-    
-    // Méthode pour vérifier si l'utilisateur est connecté localement
-    // Ici, on utiliserait SharedPreferences pour stocker cet état
-    private boolean isUserLoggedInLocally() {
-        // Dans une implémentation réelle, on vérifierait si un utilisateur est enregistré localement dans SharedPreferences
-        
-        // Exemple de code à implémenter ultérieurement :
-        // SharedPreferences prefs = getSharedPreferences("auth_prefs", MODE_PRIVATE);
-        // return prefs.getBoolean("is_logged_in", false);
-        
-        // Pour l'instant, on retourne false pour forcer l'affichage de l'écran d'authentification
-        return false;
     }
     
     // Méthode publique pour permettre aux fragments de montrer la barre de navigation

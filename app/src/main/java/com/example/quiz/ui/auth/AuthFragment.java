@@ -84,9 +84,8 @@ public class AuthFragment extends Fragment {
         // Initialiser le NavController
         navController = Navigation.findNavController(view);
 
-        // Configuration des boutons
+        // Configuration du bouton de connexion Google
         binding.buttonGoogleSignIn.setOnClickListener(v -> signInWithGoogle());
-        binding.buttonPlayAsGuest.setOnClickListener(v -> playAsGuest());
     }
 
     private void signInWithGoogle() {
@@ -113,31 +112,18 @@ public class AuthFragment extends Fragment {
                         // Essayer d'authentifier avec Firebase
                         tryFirebaseAuthWithGoogle(account.getIdToken(), account.getEmail(), account.getDisplayName());
                     } else {
-                        // Si pas de token ID, simuler une connexion avec les infos Google
-                        simulateGoogleSignIn(account);
+                        // Si pas de token ID, afficher un message d'erreur
+                        Toast.makeText(requireContext(), "Erreur: impossible de récupérer le token Google. Veuillez réessayer.", Toast.LENGTH_LONG).show();
+                        hideProgressBar();
                     }
                 }
             } catch (ApiException e) {
                 // Échec de la connexion Google
                 Log.w(TAG, "Google sign in failed", e);
                 Toast.makeText(requireContext(), "Échec de la connexion Google: " + e.getStatusCode(), Toast.LENGTH_SHORT).show();
-                
-                // Si Google échoue, utiliser le mode invité
-                playAsGuest();
+                hideProgressBar();
             }
         }
-    }
-    
-    private void simulateGoogleSignIn(GoogleSignInAccount account) {
-        // Utiliser directement le mode hors-ligne avec les informations Google
-        Log.d(TAG, "Using offline mode with Google account info");
-        
-        Toast.makeText(requireContext(), "Connecté en tant que: " + 
-                (account != null ? account.getDisplayName() : "Invité"), Toast.LENGTH_SHORT).show();
-        
-        // Naviguer directement vers l'écran d'accueil
-        navigateToHome();
-        hideProgressBar();
     }
 
     private void createUserProfileInFirestore(FirebaseUser user) {
@@ -181,18 +167,6 @@ public class AuthFragment extends Fragment {
                 }
             })
             .addOnFailureListener(e -> Log.w(TAG, "Erreur lors de la vérification de l'existence du profil utilisateur", e));
-    }
-
-    private void playAsGuest() {
-        showProgressBar();
-        
-        // Utiliser directement le mode hors-ligne au lieu de l'authentification anonyme
-        Log.d(TAG, "Using guest mode (offline)");
-        Toast.makeText(requireContext(), "Mode invité activé", Toast.LENGTH_SHORT).show();
-        
-        // Naviguer vers l'écran d'accueil
-        navigateToHome();
-        hideProgressBar();
     }
 
     private void navigateToHome() {
@@ -246,10 +220,12 @@ public class AuthFragment extends Fragment {
                     // Échec de l'authentification Firebase
                     Log.w(TAG, "signInWithCredential:failure", task.getException());
                     
-                    // Simuler une connexion réussie en mode offline
-                    simulateGoogleSignIn(null);
+                    // Afficher un message d'erreur
+                    Toast.makeText(requireContext(), 
+                            "Échec de l'authentification avec Firebase. Veuillez réessayer.", 
+                            Toast.LENGTH_LONG).show();
+                    hideProgressBar();
                 }
-                hideProgressBar();
             });
     }
 } 

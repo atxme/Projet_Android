@@ -74,7 +74,7 @@
                 android:id="@+id/auth_subtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Connectez-vous pour jouer et créer des quiz"
+                android:text="Connectez-vous avec Google pour accéder à l'application"
                 android:textAlignment="center"
                 android:textSize="16sp"
                 android:textColor="#757575"
@@ -94,27 +94,10 @@
                 app:cornerRadius="12dp"
                 android:elevation="4dp"
                 android:backgroundTint="@color/purple_500"
-                app:layout_constraintBottom_toTopOf="@+id/button_play_as_guest"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/auth_subtitle"
-                android:layout_marginBottom="16dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_play_as_guest"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:text="Jouer en tant qu'invité"
-                android:textSize="16sp"
-                android:textColor="@color/purple_500"
-                app:strokeColor="@color/purple_500"
-                app:strokeWidth="2dp"
-                app:cornerRadius="12dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/button_google_sign_in"
+                app:layout_constraintTop_toBottomOf="@+id/auth_subtitle"
                 app:layout_constraintVertical_bias="0.0" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
