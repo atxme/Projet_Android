@@ -31,15 +31,18 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
-            android:textSize="11sp"
+            android:textSize="10sp"
+            android:textStyle="bold"
             android:textColor="@android:color/white"
             app:chipBackgroundColor="@color/purple_500"
             app:layout_constraintTop_toBottomOf="@id/image_quiz"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/text_quiz_title"
             android:layout_marginTop="-12dp"
             app:chipMinHeight="24dp"
             app:chipMinTouchTargetSize="24dp"
+            app:chipStrokeWidth="0dp"
+            app:ensureMinTouchTargetSize="false"
+            app:elevation="2dp"
             tools:text="Culture" />
 
         <TextView
@@ -47,7 +50,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="24dp"
             android:layout_marginEnd="16dp"
             android:maxLines="1"
             android:ellipsize="end"
@@ -57,7 +60,7 @@
             android:fontFamily="sans-serif-medium"
             app:layout_constraintTop_toBottomOf="@id/image_quiz"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/chip_category"
             tools:text="Titre du Quiz" />
 
         <TextView

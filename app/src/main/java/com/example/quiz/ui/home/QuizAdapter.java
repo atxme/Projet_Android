@@ -85,9 +85,18 @@ public class QuizAdapter extends RecyclerView.Adapter<QuizAdapter.QuizViewHolder
             // Badge de catégorie
             Chip chipCategory = itemView.findViewById(R.id.chip_category);
             if (chipCategory != null) {
-                chipCategory.setText(quiz.getCategory());
+                // Limiter la longueur du texte de la catégorie
+                String categoryText = quiz.getCategory();
+                if (categoryText != null && categoryText.length() > 12) {
+                    categoryText = categoryText.substring(0, 10) + "...";
+                }
+                chipCategory.setText(categoryText);
+                
                 // Définir la couleur du chip en fonction de la catégorie
                 chipCategory.setChipBackgroundColorResource(getCategoryColorResource(quiz.getCategory()));
+                
+                // S'assurer que le chip est visible
+                chipCategory.setVisibility(View.VISIBLE);
             }
             
             int questionCount = quiz.getQuestions() != null ? quiz.getQuestions().size() : 0;
