@@ -289,7 +289,30 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         buttonValidate.setVisibility(View.VISIBLE);
         buttonNext.setVisibility(View.GONE);
         radioGroupOptions.clearCheck();
+        
+        // Réinitialiser le YouTubePlayerView pour chaque question
+        youtubePlayerView.removeAllViews();
+        getLifecycle().removeObserver(youtubePlayerView);
+        youtubePlayerView.release();
+        
+        // Réinitialiser la référence au player
+        youTubePlayer = null;
+        
+        // Recréer le YouTubePlayerView
+        ViewGroup parent = (ViewGroup) youtubePlayerView.getParent();
+        int index_yt = parent.indexOfChild(youtubePlayerView);
+        parent.removeView(youtubePlayerView);
+        
+        youtubePlayerView = new com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView(requireContext());
+        youtubePlayerView.setId(R.id.youtubePlayer);
+        youtubePlayerView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (int) (180 * getResources().getDisplayMetrics().density)));
         youtubePlayerView.setVisibility(View.GONE);
+        parent.addView(youtubePlayerView, index_yt);
+        
+        // Réinitialiser le lifecycle observer
+        getLifecycle().addObserver(youtubePlayerView);
         
         // Réinitialiser le background de toutes les options
         for (RadioButton option : radioOptions) {
@@ -316,12 +339,13 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
             // Extraire l'ID de la vidéo YouTube de l'URL
             String videoId = extractYouTubeId(question.getVideoUrl());
             if (videoId != null) {
+                final String finalVideoId = videoId;
                 // Initialiser le lecteur YouTube avec l'ID de la vidéo
                 youtubePlayerView.addYouTubePlayerListener(new AbstractYouTubePlayerListener() {
                     @Override
                     public void onReady(@NonNull YouTubePlayer player) {
                         youTubePlayer = player;
-                        player.cueVideo(videoId, 0);
+                        player.loadVideo(finalVideoId, 0);
                     }
                 });
             } else {
@@ -420,7 +444,6 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
         int selectedOptionId = radioGroupOptions.getCheckedRadioButtonId();
         
         if (selectedOptionId == -1) {
-            Toast.makeText(getContext(), "Veuillez sélectionner une réponse", Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -650,11 +673,19 @@ public class PlayQuizFragment extends Fragment implements GameModeManager.GameMo
     @Override
     public void onDestroy() {
         super.onDestroy();
-        gameModeManager.cleanup();
         
-        // Libérer les ressources du YouTubePlayerView
+        // Arrêter tous les timers ou threads en cours
+        if (gameModeManager != null) {
+            gameModeManager.stopTimer();
+            gameModeManager.stopShuffling();
+        }
+        
+        // Nettoyer proprement le YouTubePlayerView
         if (youtubePlayerView != null) {
+            youtubePlayerView.removeAllViews();
+            getLifecycle().removeObserver(youtubePlayerView);
             youtubePlayerView.release();
+            youTubePlayer = null;
         }
     }
 
